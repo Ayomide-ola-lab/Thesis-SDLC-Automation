@@ -1,0 +1,6 @@
+| Base Practice ID | Title | Status | Evidence Rationale |
+|------------------|-------|--------|--------------------|
+| TEC.3.BP1 | Prepare for system/software requirements definition | Partially Met | The evaluation indicates partial compliance. While there is a clear understanding of the functional boundaries, there are gaps in the formalization and availability of enabling systems or services needed for system/software requirements definition. |
+| TEC.3.BP2 | Define system/software requirements | Partially Compliant | The evidence suggests a strong technical foundation but lacks comprehensive documentation of system/software requirements attributes, traceability matrices, and formal stakeholder registers. |
+| TEC.3.BP3 | Analyse system/software requirements | Partially Met | The analysis is partially met with a strong technical foundation but lacks formal administrative and process-oriented artifacts necessary for full compliance. |
+| TEC.3.BP4 | Manage system/software requirements | Partially Compliant | While there is evidence of technical documentation, the repository lacks comprehensive formal administrative documentation necessary for full compliance. |

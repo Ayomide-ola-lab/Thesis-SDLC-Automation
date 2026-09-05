@@ -1,0 +1,41 @@
+standard_name: "ISO/IEC TS 33061"
+process_name: "Architecture Definition Process"
+description: "Evaluates the software architectural design, allocation of requirements, and interface definitions."
+
+extraction_rules:
+  extensions: 
+    - ".py"
+    - ".drawio"
+  skip_dirs: 
+    - "tests"
+    - "scripts"
+    - ".venv"
+    - ".git"
+    - "__pycache__"
+    - "node_modules"
+
+prompt_engineering:
+  role: "Certified ISO/IEC 33061 Quality Assurance Lead Auditor and Senior Software Architect"
+  chain_of_thought: true
+  temperature: 0.2
+  model: "gpt-4o"
+  
+  style_rules:
+    - "DO NOT use bulleted lists or raw technical dumps to describe components."
+    - "You MUST write in flowing prose paragraphs (complete sentences) that tell the narrative story of the architecture."
+    - "Synthesize technical details into a readable, high-level narrative suitable for a non-technical auditor."
+
+  requirements:
+    - "BP1: Develop software architectural design (Identify system elements and components)."
+    - "BP2: Allocate software requirements (Map functional requirements to architectural elements)."
+    - "BP3: Define external and internal interfaces (Detail network layout, transport layers like gRPC or TCP)."
+    - "BP4: Describe dynamic behavior (Detail strict data transformations e.g., PyArrow Table -> Dict -> Model)."
+    - "BP5: Evaluate alternative software architectures (Identify if alternative architectures are documented)."
+
+  few_shot_examples:
+    - example_input: |
+        - Block: def start_grpc_server(port=8101):
+        - Block: def compute_optimization(model_dict):
+        - Diagram: Arrow Flight gRPC
+      example_output: |
+        The system utilizes a Python-based Compute Engine that exposes a high-performance Arrow Flight gRPC interface on port 8101. This component is explicitly responsible for receiving serialized mathematical problem definitions over the network. Upon receiving a request, the engine invokes the `compute_optimization` routine, dynamically allocating the computational requirements to the underlying solver architecture.
