@@ -7,8 +7,8 @@ import xml.etree.ElementTree as ET
 import sys
 import openai
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Set
+from pydantic import BaseModel
+from typing import List, Optional
 from enum import Enum
 
 class TokenTelemetry:
@@ -183,7 +183,7 @@ class CleanContextExtractor:
         unit_id = 0
         for f in files:
             src_type = self.determine_source_type(f)
-            if src_type == EvidenceSourceType.RESEARCH_ARTIFACT: continue # Exclude contaminated corpus
+            if src_type == EvidenceSourceType.RESEARCH_ARTIFACT: continue
             rel_path = str(f.relative_to(self.repo_path))
             lang = self.extensions.get(f.suffix)
             try:
@@ -207,30 +207,42 @@ class AgentCore:
         prompt = f"Analyze these raw evidence units. Extract engineering facts. Distinguish between PRODUCT, PROCESS, and DOCUMENTATION requirements.\n{json_units}"
         return self.client.beta.chat.completions.parse(model="gpt-4o", messages=[{"role": "user", "content": prompt}], response_format=RepositoryModel).choices[0].message.parsed
 
-    def synthesize_engineering_claims(self, repo_model: RepositoryModel) -> EngineeringSynthesis:
+    def synthesize_engineering_claims(self, repo_model: RepositoryModel, authoritative_knowledge: str) -> EngineeringSynthesis:
         prompt = f"""Synthesize the Repository Facts into higher-level Engineering Claims (e.g. architectural boundaries, routing mechanisms, validation strategies). 
-        Only use OBSERVED or INFERRED. Do not invent speculative claims.\n{repo_model.model_dump_json()}"""
+        Only use OBSERVED or INFERRED. Do not invent speculative claims.
+        
+        AUTHORITATIVE SYSTEM KNOWLEDGE (TREAT AS GROUND TRUTH):
+        {authoritative_knowledge}
+        
+        REPOSITORY FACTS:
+        {repo_model.model_dump_json()}"""
         return self.client.beta.chat.completions.parse(model="gpt-4o", messages=[{"role": "user", "content": prompt}], response_format=EngineeringSynthesis).choices[0].message.parsed
 
-    def plan_document(self, process: ExtractedProcess, claims: EngineeringSynthesis, previous_docs: str = "") -> DocumentPlan:
+    def plan_document(self, process: ExtractedProcess, claims: EngineeringSynthesis, authoritative_knowledge: str, previous_docs: str = "") -> DocumentPlan:
         prompt = f"""You are the Document Planner (Agent 3A).
         PROCESS TO DEMONSTRATE: {process.process_name}
         OUTCOMES: {process.outcomes}
         PREVIOUS LIFECYCLE DOCS: {previous_docs if previous_docs else 'None'}
         
-        Given the engineering claims below, determine a professional engineering document structure that demonstrates the outcomes WITHOUT referencing the standard, ISO, or Base Practices.
+        AUTHORITATIVE SYSTEM KNOWLEDGE:
+        {authoritative_knowledge}
+        
+        Given the engineering claims below and the authoritative knowledge, determine a professional engineering document structure that demonstrates the outcomes WITHOUT referencing the standard, ISO, or Base Practices.
         Create proper semantic headings (e.g., 'Logical Architecture', 'Interface Requirements').
         ENGINEERING CLAIMS:\n{claims.model_dump_json()}"""
         return self.client.beta.chat.completions.parse(model="gpt-4o", messages=[{"role": "user", "content": prompt}], response_format=DocumentPlan).choices[0].message.parsed
 
-    def write_engineering_document(self, plan: DocumentPlan, claims: EngineeringSynthesis, previous_docs: str = "") -> str:
+    def write_engineering_document(self, plan: DocumentPlan, claims: EngineeringSynthesis, authoritative_knowledge: str, previous_docs: str = "") -> str:
         prompt = f"""You are the Engineering Writer (Agent 3B). Write a professional software specification document based on the Document Plan.
+        
+        AUTHORITATIVE SYSTEM KNOWLEDGE (TREAT AS GROUND TRUTH - DO NOT INVENT CORPORATE FLUFF):
+        {authoritative_knowledge}
         
         CRITICAL INSTRUCTIONS (NO ISO LEAKAGE):
         1. DO NOT mention ISO 33061, Base Practices, compliance, or assessment terminology.
         2. DO NOT expose evidence mechanics. Do not write "(Source: file.py)" or "Requirement: ...". Write flowing, professional engineering prose that explains the system.
-        3. Use the Engineering Claims to provide deep technical rationale.
-        4. Write it for another engineer to understand the system.
+        3. Use the Engineering Claims and Authoritative Knowledge to provide deep technical rationale. Exclude generic corporate roles (like 'management teams').
+        4. Write it for another engineer/researcher to understand the system.
         
         DOCUMENT PLAN:\n{plan.model_dump_json(indent=2)}
         
@@ -244,7 +256,7 @@ class AgentCore:
     def generate_audit_report(self, process: ExtractedProcess, claims: EngineeringSynthesis, units: List[EvidenceUnit]) -> str:
         prompt = f"""Evaluate the Base Practices for {process.process_name} against the Engineering Claims.
         Create a detailed Markdown GAP ANALYSIS table.
-        Columns: Base Practice ID | Title | Status (STRONG EVIDENCE, PARTIAL EVIDENCE, NO EVIDENCE IDENTIFIED, NOT ASSESSABLE) | Evidence Rationale & Source Citations.
+        Columns: Base Practice ID | Title | Status (STRONG EVIDENCE, PARTIAL EVIDENCE, NO EVIDENCE IDENTIFIED, NOT ASSESSABLE FROM REPOSITORY) | Evidence Rationale & Source Citations.
         
         BASE PRACTICES:\n{json.dumps([bp.model_dump() for bp in process.base_practices])}
         
@@ -253,7 +265,7 @@ class AgentCore:
         response = self.client.chat.completions.create(model="gpt-4o", messages=[{"role": "user", "content": prompt}], max_tokens=15000)
         return response.choices[0].message.content
 
-def run_v6_2_pipeline(process_name: str, standard_path: Path, repo_path: Path, global_units: List[EvidenceUnit], previous_doc: str = "") -> FinalReports:
+def run_v6_2_pipeline(process_name: str, standard_path: Path, repo_path: Path, global_units: List[EvidenceUnit], authoritative_knowledge: str, previous_doc: str = "") -> FinalReports:
     print(f"\n--- RUNNING V6.2 PIPELINE: {process_name} ---")
     core = AgentCore()
     
@@ -261,16 +273,16 @@ def run_v6_2_pipeline(process_name: str, standard_path: Path, repo_path: Path, g
     process = IngestionAgent().extract_base_practices(standard_path, process_name)
     
     print("2. Repository Understanding (Facts)...")
-    repo_model = core.build_repository_model(global_units[:30]) # Using top 30 for budget constraint (simplified generic retriever)
+    repo_model = core.build_repository_model(global_units[:30])
     
     print("3. Engineering Synthesis (Claims)...")
-    claims = core.synthesize_engineering_claims(repo_model)
+    claims = core.synthesize_engineering_claims(repo_model, authoritative_knowledge)
     
     print("4. Document Planner (Agent 3A)...")
-    plan = core.plan_document(process, claims, previous_doc)
+    plan = core.plan_document(process, claims, authoritative_knowledge, previous_doc)
     
     print("5. Engineering Writer (Agent 3B)...")
-    doc_1 = core.write_engineering_document(plan, claims, previous_doc)
+    doc_1 = core.write_engineering_document(plan, claims, authoritative_knowledge, previous_doc)
     
     print("6. Audit Reporter (Agent 4)...")
     doc_2 = core.generate_audit_report(process, claims, global_units[:30])
@@ -292,14 +304,20 @@ if __name__ == "__main__":
     global_units = extractor.extract_units()
     print(f"Clean extraction complete: {len(global_units)} VALID evidence units found.")
 
+    authoritative_knowledge = """
+    Project Overview: OptArrow is an optimization integration engine designed to connect optimization clients and solver backends through a stable, high-performance transport layer. Its current runtime centers on Python and Julia backends, and it can also be called from environments such as MATLAB through a lightweight client interface.
+    Primary Objective: Solve optimization problems (e.g., LP, QP).
+    Key Stakeholders: Software Engineers, Researchers, Data Scientists, and Optimization Specialists. (Strictly exclude generic roles like 'management teams' or 'business strategists').
+    """
+
     try:
         # Step 1: Requirements Definition
-        req_reports = run_v6_2_pipeline("System/software requirements definition process", Path(args.standard), Path(args.repo), global_units)
+        req_reports = run_v6_2_pipeline("System/software requirements definition process", Path(args.standard), Path(args.repo), global_units, authoritative_knowledge)
         (output_dir / "V6.2_01_Requirements_Document.md").write_text(req_reports.process_document, encoding="utf-8")
         (output_dir / "V6.2_01_Requirements_Audit.md").write_text(req_reports.audit_report, encoding="utf-8")
         
         # Step 2: Architecture Definition (Chained)
-        arch_reports = run_v6_2_pipeline("Architecture definition process", Path(args.standard), Path(args.repo), global_units, req_reports.process_document)
+        arch_reports = run_v6_2_pipeline("Architecture definition process", Path(args.standard), Path(args.repo), global_units, authoritative_knowledge, req_reports.process_document)
         (output_dir / "V6.2_02_Architecture_Document.md").write_text(arch_reports.process_document, encoding="utf-8")
         (output_dir / "V6.2_02_Architecture_Audit.md").write_text(arch_reports.audit_report, encoding="utf-8")
         
