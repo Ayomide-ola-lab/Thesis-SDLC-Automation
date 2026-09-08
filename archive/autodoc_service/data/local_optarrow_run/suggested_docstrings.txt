@@ -1,0 +1,1049 @@
+
+# File: send_through_json.py, Path: optArrow-main\demo\send_through_json.py, Function: run, Line: 6
+
+    """
+    Sends a JSON request to a specified URL and prints the response along with timing information.
+
+        Args:
+            None
+
+        Returns:
+            None
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: run_julia_engine.py, Path: optArrow-main\src\run_julia_engine.py, Function: __init__, Line: 7
+
+    """
+    Initialize the object with configuration settings.
+
+        Args:
+            config_path (str): Path to the configuration file (default is 'config.yaml').
+
+        Returns:
+            None
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: run_julia_engine.py, Path: optArrow-main\src\run_julia_engine.py, Function: run_julia_server_with_restart, Line: 27
+
+    """
+    Starts the Julia engine service with automatic restart on failure.
+
+        Args:
+            max_retries (int): Maximum number of restart attempts (default is 999).
+
+        Returns:
+            None: The function does not return a value.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: run_julia_engine.py, Path: optArrow-main\src\run_julia_engine.py, Function: _warm_up_connection, Line: 67
+
+    """
+    Establishes a connection to a service and sends a serialized message.
+
+        Args:
+            timeout (int): The connection timeout in seconds (default is 1).
+
+        Returns:
+            bool: True if the connection and message sending were successful, False otherwise.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: run_py_engine.py, Path: optArrow-main\src\run_py_engine.py, Function: __init__, Line: 8
+
+    """
+    Initialize a gRPC client with configuration settings.
+
+        Args:
+            config_path (str): Path to the configuration file (default is 'config.yaml').
+
+        Returns:
+            None
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: run_server.py, Path: optArrow-main\src\run_server.py, Function: __init__, Line: 4
+
+    """
+    Initialize the HTTP configuration from a YAML file.
+
+        Args:
+            config_path (str): Path to the YAML configuration file (default is 'config.yaml').
+
+        Returns:
+            None
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: QPLIB_model.py, Path: optArrow-main\tests\QPLIB_model.py, Function: download_qplib, Line: 9
+
+    """
+    Downloads a QPLIB file from a specified URL and saves it to a local path.
+
+        Args:
+            instance_id (str): The ID of the QPLIB instance to download.
+            save_path (str, optional): The local path to save the file. Defaults to
+            '<instance_id>.qplib'.
+
+        Returns:
+            str: The path where the file was saved.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: QPLIB_model.py, Path: optArrow-main\tests\QPLIB_model.py, Function: read_qplib, Line: 23
+
+    """
+    Reads a quadratic programming problem from a file and returns its components.\n\n    Args:\n
+    path (str): The file path to the quadratic programming problem.\n\n    Returns:\n        dict: A
+    dictionary containing the problem's name, Q matrix, linear coefficients, constraints, and
+    bounds.
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: __init__.py, Path: optArrow-main\tests\__init__.py
+# Function: Module-level
+    """
+    Test package marker for benchmark helper imports.
+
+    Args:
+        None
+
+    Returns:
+        None
+
+    """
+--------------------------------------------------------------------------------
+
+# File: test_julia_benchmark.py, Path: optArrow-main\tests\ipc_http_test\test_julia_benchmark.py
+# Function: Module-level
+    """
+    Benchmark tests for comparing solver performance across multiple problem instances.
+
+    Args:
+        None
+
+    Returns:
+        None
+
+    """
+--------------------------------------------------------------------------------
+
+# File: test_julia_lp.py, Path: optArrow-main\tests\ipc_http_test\test_julia_lp.py, Function: test_julia_flow, Line: 42
+
+    """
+    Tests the Julia solver flow by sending a request to a local server and validating the response.
+
+        Args:
+            solver (dict): A dictionary containing solver configuration and parameters.
+
+        Returns:
+            None: Asserts conditions based on the server response and prints results.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: test_julia_qp.py, Path: optArrow-main\tests\ipc_http_test\test_julia_qp.py, Function: test_julia_flow, Line: 22
+
+    """
+    Tests the Julia solver by sending a request to a local server and validating the response.\n\n
+    Args:\n        solver (dict): A dictionary containing solver configuration and parameters.\n\n
+    Returns:\n        None: Asserts the response status and checks the validity of the solution.\n
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: test_large_data_benchmark.py, Path: optArrow-main\tests\ipc_http_test\test_large_data_benchmark.py
+# Function: Module-level
+    """
+    Benchmark tests for large-scale LP/QP problems.
+
+    Args:
+        problem_data (dict): Data for the LP/QP problems to benchmark.
+
+    Returns:
+        None: Results are written to CSV files for analysis.
+
+    """
+--------------------------------------------------------------------------------
+
+# File: test_pyomo_lp.py, Path: optArrow-main\tests\ipc_http_test\test_pyomo_lp.py, Function: test_pyomo_service, Line: 35
+
+    """
+    Tests the Pyomo service by sending a model for computation.
+
+        Args:
+            solver (str): The solver to be used for the computation.
+
+        Returns:
+            None: Asserts the response for successful computation and prints the time taken.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: test_pyomo_lp.py, Path: optArrow-main\tests\ipc_http_test\test_pyomo_lp.py, Function: test_pyomo_service_json, Line: 72
+
+    """
+    Tests the Pyomo service by sending a JSON request to a local server.
+
+        Args:
+            solver (str): The solver to be used in the computation.
+
+        Returns:
+            None: Asserts the response for correctness and prints execution time.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: test_pyomo_lp.py, Path: optArrow-main\tests\ipc_http_test\test_pyomo_lp.py, Function: test_pyomo_lp_no_server, Line: 99
+
+    """
+    Tests the Pyomo LP solver without a server.
+
+     Args:
+         solver (str): The name of the solver to be used.
+
+     Returns:
+         None: Asserts the success of the solver and checks for valid results.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: test_pyomo_qp.py, Path: optArrow-main\tests\ipc_http_test\test_pyomo_qp.py, Function: test_pyomo_service, Line: 42
+
+    """
+    Tests the Pyomo service by sending a model to a local server and validating the response.\n\n
+    Args:\n        solver (str): The solver to be used for the computation.\n\n    Returns:\n
+    None: Asserts the response contains valid results and status.\n
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: test_pyomo_qp.py, Path: optArrow-main\tests\ipc_http_test\test_pyomo_qp.py, Function: test_pyomo_service_json, Line: 77
+
+    """
+    Tests the Pyomo service by sending a JSON request to a local server.
+
+        Args:
+            solver (str): The solver to be used in the computation.
+
+        Returns:
+            None: Asserts the response for validity and prints execution time.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: test_pyomo_qp.py, Path: optArrow-main\tests\ipc_http_test\test_pyomo_qp.py, Function: test_pyomo_qp_no_server, Line: 103
+
+    """
+    Tests the Pyomo solver with specified parameters.
+
+        Args:
+            solver (str): The name of the solver to be used.
+
+        Returns:
+            None: Asserts the success of the solver run and prints the result.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: helpers.py, Path: optArrow-main\tests\reference_benchmarks\helpers.py, Function: load_catalog, Line: 13
+
+    """
+    Load the catalog from a JSON file.
+
+    Returns:
+        dict: The parsed JSON data as a dictionary.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: helpers.py, Path: optArrow-main\tests\reference_benchmarks\helpers.py, Function: iter_active_fixtures, Line: 17
+
+    """
+    Yield active fixture entries from the catalog.
+
+        Returns:
+            dict: A dictionary representation of each active fixture entry.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: helpers.py, Path: optArrow-main\tests\reference_benchmarks\helpers.py, Function: fixture_ids, Line: 26
+
+    """
+    Extracts the 'id' from a list of fixture dictionaries.
+
+    Args:
+        fixtures (list): A list of dictionaries containing fixture data.
+
+    Returns:
+        list: A list of ids extracted from the fixture dictionaries.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: helpers.py, Path: optArrow-main\tests\reference_benchmarks\helpers.py, Function: build_request_payload, Line: 30
+
+    """
+    Constructs a request payload from the given fixture and engine.
+
+        Args:
+            fixture (dict): A dictionary containing fixture data.
+            engine (str): The engine type to include in the payload.
+
+        Returns:
+            dict: A dictionary representing the constructed request payload.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: helpers.py, Path: optArrow-main\tests\reference_benchmarks\helpers.py, Function: run_pyomo_direct, Line: 40
+
+    """
+    Run the Pyomo optimization solver with the given parameters.
+
+        Args:
+            fixture (dict): A dictionary containing the model parameters and solver information.
+
+        Returns:
+            dict: The result of the optimization run as a dictionary.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: helpers.py, Path: optArrow-main\tests\reference_benchmarks\helpers.py, Function: run_gateway_case, Line: 50
+
+    """
+    Executes a gateway case by sending a request to a specified endpoint.
+
+        Args:
+            fixture (dict): The input data for the request.
+            engine (str): The engine type to be used.
+            endpoint (str, optional): The URL to send the request to (default is
+            'http://127.0.0.1:8000/compute').
+
+        Returns:
+            tuple[int, dict]: The HTTP status code and the response data as a dictionary.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: helpers.py, Path: optArrow-main\tests\reference_benchmarks\helpers.py, Function: assert_reference_result, Line: 76
+
+    """
+    Validate the result against expected values from a fixture.
+
+        Args:
+            result (dict): The actual result to validate.
+            fixture (dict): The expected values for validation.
+
+        Returns:
+            None: Asserts conditions based on the validation checks.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: test_reference_gateway.py, Path: optArrow-main\tests\reference_benchmarks\test_reference_gateway.py, Function: test_reference_problem_through_gateway_python, Line: 16
+
+    """
+    Tests the reference problem through the Python gateway.\n\n    Args:\n        fixture (dict): A
+    dictionary containing test configuration and supported engines.\n\n    Returns:\n        None:
+    Asserts the status code and reference result for the test case.\n
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: test_reference_gateway.py, Path: optArrow-main\tests\reference_benchmarks\test_reference_gateway.py, Function: test_reference_problem_through_gateway_julia, Line: 29
+
+    """
+    Tests the reference problem through the Julia gateway.\n\n    Args:\n        fixture (dict): A
+    fixture containing configuration and supported engines.\n\n    Returns:\n        None: Asserts
+    the status code and reference result for the test case.\n
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: test_reference_pyomo_direct.py, Path: optArrow-main\tests\reference_benchmarks\test_reference_pyomo_direct.py, Function: test_reference_problem_with_pyomo_direct, Line: 15
+
+    """
+    Test the reference problem using Pyomo Direct.
+
+        Args:
+            fixture: A test fixture containing problem data.
+
+        Returns:
+            None: Asserts the result against the reference.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: __init__.py, Path: optArrow-main\tests\reference_benchmarks\__init__.py
+# Function: Module-level
+    """
+    Reference benchmark test package.
+
+    Args:
+        None
+
+    Returns:
+        None
+
+    """
+--------------------------------------------------------------------------------
+
+# File: controllers.py, Path: optArrow-main\src\api\controllers.py, Function: __init__, Line: 5
+
+    """
+    Initializes the service and model factories.
+
+        Args:
+            None
+
+        Returns:
+            None
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: flat_arrow_schema.py, Path: optArrow-main\src\api\flat_arrow_schema.py, Function: col, Line: 2
+
+    """
+    Retrieve the first value of a specified column from a table.
+
+    Args:
+        name (str): The name of the column to retrieve the value from.
+
+    Returns:
+        Any: The first value of the specified column as a Python object.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: flat_arrow_schema.py, Path: optArrow-main\src\api\flat_arrow_schema.py, Function: _map_stat, Line: 175
+
+    """
+    Maps a status string to an integer code.
+
+        Args:
+            status (str | None): The status string to map.
+
+        Returns:
+            int: The corresponding integer code for the status.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: model_factory.py, Path: optArrow-main\src\model\model_factory.py, Function: ModelFactory, Line: 8
+
+    """
+    Creates an optimization model instance based on the specified type.
+
+        Args:
+            model_type (str): The type of model to create ('lp', 'qp', 'solver').
+            data: The data required to initialize the model.
+
+        Returns:
+            An instance of the specified model type.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: request_model.py, Path: optArrow-main\src\model\request_model.py, Function: RequestModel, Line: 1
+
+    """
+    Initializes a RequestModel instance with default attributes.
+
+        Args:
+            None
+
+        Returns:
+            None
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: request_model.py, Path: optArrow-main\src\model\request_model.py, Function: __init__, Line: 1
+
+    """
+    Initializes a new instance of the class with default attributes.
+
+        Args:
+            None
+
+        Returns:
+            None
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: solver_model.py, Path: optArrow-main\src\model\solver_model.py, Function: sanity_check, Line: 34
+
+    """
+    Perform a sanity check on the current state.
+
+    Returns:
+        None: This function does not return any value.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: pyomo_utils.py, Path: optArrow-main\src\utils\pyomo_utils.py, Function: SolverConfig, Line: 4
+
+    """
+    Initializes a SolverConfig instance with a name and an optional handle.
+
+        Args:
+            name (str): The name of the solver.
+            handle (optional): An optional handle associated with the solver.
+
+        Returns:
+            None
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: pyomo_utils.py, Path: optArrow-main\src\utils\pyomo_utils.py, Function: __init__, Line: 1
+
+    """
+    Initialize a user with a name and an optional handle.
+
+    Args:
+        name (str): The name of the user.
+        handle (str, optional): The user's handle, defaults to None.
+
+    Returns:
+        None
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: pyomo_utils.py, Path: optArrow-main\src\utils\pyomo_utils.py, Function: create_solver_config, Line: 9
+
+    """
+    Creates a solver configuration with the specified name and parameters.
+
+        Args:
+            name (str): The name of the solver, which will be converted to uppercase.
+            params (optional): Additional parameters for the solver configuration.
+            print_level (int, optional): Level of output verbosity (default is 1).
+
+        Returns:
+            SolverConfig: An instance of SolverConfig initialized with the solver name.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: base_opt_service.py, Path: optArrow-main\src\service\optimization_service\base_opt_service.py, Function: __init__, Line: 7
+
+    """
+    Initializes a new instance of the class.\n\n    Args:\n        None\n\n    Returns:\n
+    None\n
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: compute_grpc_service.py, Path: optArrow-main\src\service\optimization_service\compute_grpc_service.py, Function: __init__, Line: 8
+
+    """
+    Initialize the gRPC client with configuration settings.
+
+        Args:
+            config_path (str): Path to the configuration file.
+            ip (str, optional): IP address for the client.
+            port (int, optional): Port number for the client.
+
+        Returns:
+            None
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: compute_julia_service.py, Path: optArrow-main\src\service\optimization_service\compute_julia_service.py, Function: __init__, Line: 8
+
+    """
+    Initialize the object with configuration settings.
+
+        Args:
+            config_path (str): Path to the configuration file.
+            ip (str, optional): IP address to use; defaults to config value.
+            port (int, optional): Port number to use; defaults to config value.
+
+        Returns:
+            None
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: compute_julia_service.py, Path: optArrow-main\src\service\optimization_service\compute_julia_service.py, Function: _recv_all, Line: 50
+
+    """
+    Receive a specified number of bytes from a socket.\n\n    Args:\n        sock (socket.socket):
+    The socket to read data from.\n        total_bytes (int): The total number of bytes to
+    receive.\n\n    Returns:\n        bytes: The received data as a bytes object.\n
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: arrow_rpc_server.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\controller\arrow_rpc_server.py, Function: __init__, Line: 11
+
+    """
+    Initialize a FlightServer instance with a specified location.
+
+        Args:
+            location (str): The server location URL (default is 'grpc://0.0.0.0:8815').
+            **kwargs: Additional keyword arguments for customization.
+
+        Returns:
+            None
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: arrow_rpc_server.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\controller\arrow_rpc_server.py, Function: _make_flight_info, Line: 17
+
+    """
+    Generates flight information for a given dataset.
+
+        Args:
+            dataset (str): The name of the dataset to retrieve flight info for.
+
+        Returns:
+            FlightInfo: An object containing schema, descriptor, and endpoints for the dataset.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: arrow_rpc_server.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\controller\arrow_rpc_server.py, Function: get_flight_info, Line: 28
+
+    """
+    Retrieve flight information based on the provided descriptor.
+
+        Args:
+            context: The context in which the function is called.
+            descriptor: An object containing flight path information.
+
+        Returns:
+            str: Decoded flight information from the descriptor path.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: arrow_rpc_server.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\controller\arrow_rpc_server.py, Function: list_actions, Line: 80
+
+    """
+    Retrieve a list of available actions for the given context.
+
+    Args:
+        context: Any - The context in which actions are to be listed.
+
+    Returns:
+        list of tuples: A list containing action names and their descriptions.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: arrow_rpc_server.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\controller\arrow_rpc_server.py, Function: do_action, Line: 84
+
+    """
+    Executes a specified action based on its type.
+
+        Args:
+            context: The context in which the action is executed.
+            action: An object containing the action type and body.
+
+        Returns:
+            Result of the action execution.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: arrow_rpc_server.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\controller\arrow_rpc_server.py, Function: do_drop_dataset, Line: 90
+
+    """
+    Remove the specified dataset from the internal tables.
+
+        Args:
+            dataset (str): The name of the dataset to be removed.
+
+        Returns:
+            None
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: arrow_rpc_server.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\controller\arrow_rpc_server.py, Function: do_solver, Line: 94
+
+    """
+    Executes a solver with the given parameters and returns the result as a RecordBatchStream.
+
+        Args:
+            param (str): A comma-separated string containing dataset and solver name.
+
+        Returns:
+            pa.flight.RecordBatchStream: The result of the solver execution in a RecordBatchStream
+            format.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: arrow_rpc_server.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\controller\arrow_rpc_server.py, Function: grpc_serve, Line: 167
+
+    """
+    Starts the gRPC server for handling flight requests.
+
+        Args:
+            None
+
+        Returns:
+            None
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: base_problem.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\objects\base_problem.py, Function: __init__, Line: 3
+
+    """
+    Initialize the class with model parameters.
+
+        Args:
+            model (dict, optional): A dictionary of model parameters. Must not be None.
+
+        Raises:
+            ValueError: If the model is None.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: base_problem.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\objects\base_problem.py, Function: build, Line: 8
+
+    """
+    Builds a solution using the provided solver configuration.
+
+        Args:
+            solver (SolverConfig): The configuration for the solver.
+
+        Returns:
+            None
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: base_problem.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\objects\base_problem.py, Function: solve, Line: 10
+
+    """
+    Solves a problem using specified solver parameters.
+
+        Args:
+            solver_params (optional): Parameters to configure the solver.
+
+        Returns:
+            None: This function does not return a value.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: problem_factory.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\objects\problem_factory.py, Function: __init__, Line: 4
+
+    """
+    Initialize a problem instance based on the specified type.
+
+        Args:
+            type (str): The type of problem ('LP' for linear programming, 'QP' for quadratic
+            programming).
+            model (dict): The model parameters for the problem.
+
+        Returns:
+            None
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: solver.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\objects\solver.py, Function: __init__, Line: 2
+
+    """
+    Initializes a new instance of the class.\n\n    Args:\n        None\n\n    Returns:\n
+    None\n
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: solver_factory.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\objects\solver_factory.py, Function: SolverFactory, Line: 4
+
+    """
+    Factory class for creating solver instances.
+
+        Args:
+            name (str): The name of the solver to retrieve.
+
+        Returns:
+            BaseSolver: An instance of the requested solver or None if not found.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: solver_factory.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\objects\solver_factory.py, Function: __init__, Line: 1
+
+    """
+    Initializes the solver map with available solvers.
+
+        Args:
+            None
+
+        Returns:
+            None
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: lp_problem.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\problems\lp_problem.py, Function: LPProblem, Line: 12
+
+    """
+    A class representing a linear programming problem.\n\n    Args:\n        model (dict, optional):
+    A dictionary containing model parameters including A, b, c, lb, ub, osense, and csense.\n\n
+    Returns:\n        None: Initializes the LPProblem instance with the provided model parameters.
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: lp_problem.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\problems\lp_problem.py, Function: __init__, Line: 1
+
+    """
+    Initialize the model parameters for optimization.
+
+        Args:
+            model (optional): An optional model object to initialize with.
+
+        Returns:
+            None
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: lp_problem.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\problems\lp_problem.py, Function: build, Line: 26
+
+    """
+    Builds a mathematical optimization model using the provided solver configuration.
+
+        Args:
+            solver (SolverConfig): Configuration for the solver to be used.
+
+        Returns:
+            ConcreteModel: The constructed optimization model ready for solving.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: lp_problem.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\problems\lp_problem.py, Function: solve, Line: 83
+
+    """
+    Solves the optimization model using the specified solver and parameters.
+
+        Args:
+            solver_params (dict): Optional dictionary of solver-specific parameters.
+            timeout (int): Maximum time in seconds for the solver to run (default is 300).
+
+        Returns:
+            None: Updates the instance attributes with the solution and status of the optimization.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: qp_problem.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\problems\qp_problem.py, Function: QPProblem, Line: 23
+
+    """
+    Represents a Quadratic Programming (QP) problem.\n\n    Args:\n        model (dict, optional): A
+    dictionary containing model parameters including A, G, Q, b, c, h, lb, ub, and osense.\n\n
+    Returns:\n        None: Initializes the QP problem with the provided model parameters.
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: qp_problem.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\problems\qp_problem.py, Function: __init__, Line: 1
+
+    """
+    Initialize the model parameters for optimization.
+
+        Args:
+            model (optional): An optional model object to initialize with.
+
+        Returns:
+            None: This constructor does not return a value.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: qp_problem.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\problems\qp_problem.py, Function: build, Line: 50
+
+    """
+    Builds a mathematical optimization model using the provided solver configuration.
+
+        Args:
+            solver (SolverConfig): Configuration for the solver to be used.
+
+        Returns:
+            ConcreteModel: The constructed optimization model with variables, objectives, and
+            constraints set up.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: qp_problem.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\problems\qp_problem.py, Function: rows_from_triplet, Line: 21
+
+    """
+    Convert a triplet representation of a sparse matrix into a list of rows.
+
+    Args:
+        T (dict): A dictionary with keys 'shape' (tuple), 'row' (list), 'col' (list), and 'val'
+        (list).
+
+    Returns:
+        list: A list of rows, where each row contains tuples of (column index, value).
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: qp_problem.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\problems\qp_problem.py, Function: solve, Line: 106
+
+    """
+    Solves the optimization model using the specified solver and parameters.
+
+        Args:
+            solver_params (dict): Parameters for the solver.
+            timeout (int): Maximum time allowed for the solver in seconds.
+
+        Returns:
+            None: Updates the solution and status attributes of the instance.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: qp_problem.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\problems\qp_problem.py, Function: _solve_with_highspy, Line: 137
+
+    """
+    Solves a quadratic programming model using the HiGHS solver.
+
+        Args:
+            solver_params (dict, optional): Parameters for the HiGHS solver.
+            timeout (int, optional): Time limit for the solver in seconds (default is 300).
+
+        Returns:
+            None: Updates the instance with the solution and objective value if optimal.
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: qp_problem.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\problems\qp_problem.py, Function: _build_highs_lp, Line: 165
+
+    """
+    Constructs and returns a HighsLp object representing a linear programming problem.\n\n
+    Returns:\n        HighsLp: An object containing the linear program's parameters and matrix
+    representation.\n
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: qp_problem.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\problems\qp_problem.py, Function: _build_highs_hessian, Line: 203
+
+    """
+    Constructs a Hessian matrix in CSC format from the given entries.\n\n    Args:\n        self:
+    The instance of the class containing the Hessian data.\n\n    Returns:\n
+    highspy.HighsHessian: The constructed Hessian matrix object.\n
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: opt_solver.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\service\opt_solver.py, Function: __init__, Line: 2
+
+    """
+    Initializes a new instance of the class, calling the superclass initializer.
+
+        Args:
+            None
+
+        Returns:
+            None
+
+    """
+
+----------------------------------------------------------------------------------------------------
+
+# File: opt_solver.py, Path: optArrow-main\src\service\optimization_service\python\pyomo\service\opt_solver.py, Function: run, Line: 4
+
+    """
+    Executes a solver on the provided parameters to find an optimal solution.
+
+        Args:
+            params (dict): A dictionary containing model parameters and solver configuration.
+
+        Returns:
+            dict: A dictionary with success status, solution, status message, and objective value or
+            error message.
+
+    """
+
+----------------------------------------------------------------------------------------------------

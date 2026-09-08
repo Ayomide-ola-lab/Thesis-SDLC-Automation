@@ -1,0 +1,61 @@
+{% extends "admin/base.html" %}
+{% block title %}Run History | Auto Doc Admin{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <section class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 dark:bg-shell-900 dark:ring-slate-800">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div>
+        <h2 class="text-2xl font-semibold">Run history</h2>
+        <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Inspect previous workflow runs, filter by repository, retry failures, and cancel queued work.</p>
+      </div>
+      <div class="flex flex-wrap items-end gap-3">
+        <form method="get" class="flex flex-wrap items-end gap-3">
+          <label class="block text-sm">
+            <span class="mb-2 block font-medium">Repository filter</span>
+            <select name="repository_id" class="rounded-lg border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-shell-800">
+              <option value="0">All repositories</option>
+              {% for repository in repositories %}
+              <option value="{{ repository.id }}" {% if selected_repository_id == repository.id %}selected{% endif %}>{{ repository.name }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <button class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white">Apply</button>
+        </form>
+        <form method="post" action="/admin/runs/clear">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          {% if selected_repository_id %}
+          <input type="hidden" name="repository_id" value="{{ selected_repository_id }}">
+          {% endif %}
+          <button class="rounded-lg border border-rose-300 px-4 py-2 text-sm font-medium text-rose-700 dark:border-rose-500/40 dark:text-rose-200">
+            {% if selected_repository_id %}Clear filtered history{% else %}Clear all history{% endif %}
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 dark:bg-shell-900 dark:ring-slate-800">
+    <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
+      <thead class="bg-slate-50 dark:bg-shell-800">
+        <tr>
+          <th class="px-4 py-3 text-left font-medium">Run</th>
+          <th class="px-4 py-3 text-left font-medium">Repository</th>
+          <th class="px-4 py-3 text-left font-medium">Status</th>
+          <th class="px-4 py-3 text-left font-medium">Created</th>
+          <th class="px-4 py-3 text-left font-medium">Duration</th>
+          <th class="px-4 py-3 text-left font-medium">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+        {% for run in runs %}
+        {% include "admin/partials/run_row.html" %}
+        {% else %}
+        <tr>
+          <td colspan="6" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">No runs match the current filter.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+{% endblock %}

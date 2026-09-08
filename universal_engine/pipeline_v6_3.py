@@ -242,14 +242,15 @@ def run_v6_3_pipeline(process_name: str, standard_path: Path, global_units: List
     return FinalReports(process_document=doc_1, audit_report=doc_2)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--repo", type=str, default=str(Path("C:/Users/oladi/Desktop/Thesis/OPTARROW GIT/optArrow")))
-    parser.add_argument("--standard", type=str, default=str(Path(__file__).parent / "iso_33061_standard.md"))
-    parser.add_argument("--pdf", type=str, default=str(Path(__file__).parent / "Architecture diagram" / "OptArrow_Architecture.pdf"))
+    parser = argparse.ArgumentParser(description="V6.3 Multimodal Agentic SDLC Process Documentation Pipeline")
+    parser.add_argument("--repo", type=str, default=str(Path("C:/Users/oladi/Desktop/Thesis/OPTARROW GIT/optArrow")), help="Path to target codebase repository")
+    parser.add_argument("--standard", type=str, default=str(AUTODOC_ROOT / "resources" / "standards" / "iso_33061_standard.md"), help="Path to ISO/IEC TS 33061 standard text")
+    parser.add_argument("--pdf", type=str, default=str(AUTODOC_ROOT / "resources" / "case_study" / "OptArrow_Architecture.pdf"), help="Path to intended visual architecture PDF diagram")
+    parser.add_argument("--output-dir", type=str, default=str(AUTODOC_ROOT / "outputs" / "representative_eval"), help="Directory to save generated engineering specifications and gap audits")
     args = parser.parse_args()
     
-    output_dir = Path(__file__).parent / "output"
-    output_dir.mkdir(exist_ok=True)
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     print("=== V6.3 MULTIMODAL RAG PIPELINE ===")
     

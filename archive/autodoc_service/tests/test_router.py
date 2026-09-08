@@ -1,0 +1,1054 @@
+from asyncio import run
+
+import httpx
+
+from main import app
+from services.doc_services import RepoAnalysisError
+from services.sphinx_services import (
+    AUTOAPI_DOCSTRING_THRESHOLD,
+    PublishPagesError,
+    _apply_autoapi_runtime_settings,
+    _classify_autoapi_file,
+    _collect_prebuild_autoapi_ignores,
+    _discover_autoapi_reference_entries,
+    _ensure_api_index,
+    _ensure_api_reference,
+    _ensure_sphinx_project_name,
+    _extract_autoapi_module_names,
+    _extract_module_name_from_autoapi_path,
+    _find_autoapi_skip_candidates,
+    _module_names_to_ignore_patterns,
+    _project_name_from_repo_path,
+    _run_sphinx_build_with_autoapi_filters,
+    _to_autoapi_ignore_pattern,
+    create_sphinx_setup,
+    publish_github_pages,
+)
+from utils.git_utils import GitHubApiError
+
+
+def request(method, url, **kwargs):
+    async def _request():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            return await client.request(method, url, **kwargs)
+
+    return run(_request())
+
+
+def test_root_endpoint_redirects_to_admin():
+    response = request("GET", "/")
+
+    assert response.status_code == 307
+    assert response.headers["location"] == "/admin"
+
+
+def test_generate_endpoint_returns_success_when_services_succeed(monkeypatch):
+    captured = {}
+
+    monkeypatch.setattr(
+        "services.workflow_service.analyse_repo",
+        lambda provider, repo_url, token, branch, target_folders, model, reuse_doc: (
+            captured.update({"model": model, "reuse_doc": reuse_doc}) or "analysis.csv",
+            [{"file_name": "a.py"}],
+        ),
+    )
+    monkeypatch.setattr(
+        "services.workflow_service.create_sphinx_setup",
+        lambda provider, repo_url, token, branch, analysis_file, docstring_threshold, low_content_min_lines: (
+            captured.update(
+                {
+                    "docstring_threshold": docstring_threshold,
+                    "low_content_min_lines": low_content_min_lines,
+                }
+            )
+            or True
+        ),
+    )
+
+    response = request(
+        "POST",
+        "/generate",
+        json={
+            "provider": "github",
+            "repo_url": "example/project",
+            "token": "secret",
+            "branch": "main",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "success"
+    assert captured["model"] == "gpt-4o-mini"
+    assert captured["reuse_doc"] is False
+    assert captured["docstring_threshold"] == 0.50
+    assert captured["low_content_min_lines"] == 4
+
+
+def test_generate_endpoint_returns_not_found_when_analysis_is_empty(monkeypatch):
+    def fail_analysis(provider, repo_url, token, branch, target_folders, model, reuse_doc):
+        raise RepoAnalysisError(
+            "Repository was reachable, but no supported source files were found.",
+            status_code=404,
+        )
+
+    monkeypatch.setattr("services.workflow_service.analyse_repo", fail_analysis)
+
+    response = request(
+        "POST",
+        "/generate",
+        json={
+            "provider": "github",
+            "repo_url": "example/project",
+            "token": "secret",
+            "branch": "main",
+        },
+    )
+
+    assert response.status_code == 404
+    assert "no supported source files" in response.json()["detail"].lower()
+
+
+def test_generate_endpoint_uses_provided_model(monkeypatch):
+    captured = {}
+
+    def fake_analyse_repo(provider, repo_url, token, branch, target_folders, model, reuse_doc):
+        captured["model"] = model
+        captured["reuse_doc"] = reuse_doc
+        return "analysis.csv", [{"file_name": "a.py"}]
+
+    monkeypatch.setattr("services.workflow_service.analyse_repo", fake_analyse_repo)
+    monkeypatch.setattr(
+        "services.workflow_service.create_sphinx_setup",
+        lambda provider, repo_url, token, branch, analysis_file, docstring_threshold, low_content_min_lines: True,
+    )
+
+    response = request(
+        "POST",
+        "/generate",
+        json={
+            "provider": "github",
+            "repo_url": "example/project",
+            "token": "secret",
+            "branch": "main",
+            "model": "gpt-4.1-mini",
+        },
+    )
+
+    assert response.status_code == 200
+    assert captured["model"] == "gpt-4.1-mini"
+    assert captured["reuse_doc"] is False
+
+
+def test_generate_endpoint_uses_reuse_doc_flag(monkeypatch):
+    captured = {}
+
+    def fake_analyse_repo(provider, repo_url, token, branch, target_folders, model, reuse_doc):
+        captured["reuse_doc"] = reuse_doc
+        return "analysis.csv", [{"file_name": "a.py"}]
+
+    monkeypatch.setattr("services.workflow_service.analyse_repo", fake_analyse_repo)
+    monkeypatch.setattr(
+        "services.workflow_service.create_sphinx_setup",
+        lambda provider, repo_url, token, branch, analysis_file, docstring_threshold, low_content_min_lines: (
+            captured.update(
+                {
+                    "docstring_threshold": docstring_threshold,
+                    "low_content_min_lines": low_content_min_lines,
+                }
+            )
+            or True
+        ),
+    )
+
+    response = request(
+        "POST",
+        "/generate",
+        json={
+            "provider": "github",
+            "repo_url": "example/project",
+            "token": "secret",
+            "branch": "main",
+            "reuse_doc": True,
+        },
+    )
+
+    assert response.status_code == 200
+    assert captured["reuse_doc"] is True
+    assert captured["docstring_threshold"] == 0.50
+    assert captured["low_content_min_lines"] == 4
+
+
+def test_generate_endpoint_uses_provided_docstring_threshold(monkeypatch):
+    captured = {}
+
+    monkeypatch.setattr(
+        "services.workflow_service.analyse_repo",
+        lambda provider, repo_url, token, branch, target_folders, model, reuse_doc: (
+            "analysis.csv",
+            [{"file_name": "a.py"}],
+        ),
+    )
+    monkeypatch.setattr(
+        "services.workflow_service.create_sphinx_setup",
+        lambda provider, repo_url, token, branch, analysis_file, docstring_threshold, low_content_min_lines: (
+            captured.update(
+                {
+                    "docstring_threshold": docstring_threshold,
+                    "low_content_min_lines": low_content_min_lines,
+                }
+            )
+            or True
+        ),
+    )
+
+    response = request(
+        "POST",
+        "/generate",
+        json={
+            "provider": "github",
+            "repo_url": "example/project",
+            "token": "secret",
+            "branch": "main",
+            "docstring_threshold": 0.75,
+        },
+    )
+
+    assert response.status_code == 200
+    assert captured["docstring_threshold"] == 0.75
+    assert captured["low_content_min_lines"] == 4
+
+
+def test_generate_endpoint_uses_provided_low_content_min_lines(monkeypatch):
+    captured = {}
+
+    monkeypatch.setattr(
+        "services.workflow_service.analyse_repo",
+        lambda provider, repo_url, token, branch, target_folders, model, reuse_doc: (
+            "analysis.csv",
+            [{"file_name": "a.py"}],
+        ),
+    )
+    monkeypatch.setattr(
+        "services.workflow_service.create_sphinx_setup",
+        lambda provider, repo_url, token, branch, analysis_file, docstring_threshold, low_content_min_lines: (
+            captured.update(
+                {
+                    "docstring_threshold": docstring_threshold,
+                    "low_content_min_lines": low_content_min_lines,
+                }
+            )
+            or True
+        ),
+    )
+
+    response = request(
+        "POST",
+        "/generate",
+        json={
+            "provider": "github",
+            "repo_url": "example/project",
+            "token": "secret",
+            "branch": "main",
+            "docstring_threshold": 0.3,
+            "low_content_min_lines": 2,
+        },
+    )
+
+    assert response.status_code == 200
+    assert captured["docstring_threshold"] == 0.3
+    assert captured["low_content_min_lines"] == 2
+
+
+def test_generate_endpoint_rejects_invalid_docstring_threshold():
+    response = request(
+        "POST",
+        "/generate",
+        json={
+            "provider": "github",
+            "repo_url": "example/project",
+            "token": "secret",
+            "branch": "main",
+            "docstring_threshold": 1.2,
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_publish_pages_returns_specific_publish_error(monkeypatch):
+    def fail_publish(repo_url, branch, token, low_content_min_lines):
+        raise PublishPagesError("GitHub Pages configuration failed.")
+
+    monkeypatch.setattr("services.workflow_service.publish_github_pages", fail_publish)
+
+    response = request(
+        "POST",
+        "/publish-pages",
+        json={
+            "repo_url": "example/project",
+            "token": "secret",
+            "branch": "docs-review",
+        },
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "GitHub Pages configuration failed."
+
+
+def test_publish_pages_returns_raw_publish_branch_update_error(monkeypatch):
+    def fail_publish(repo_url, branch, token, low_content_min_lines):
+        raise PublishPagesError("GitHub publish failed for 'example/project': Update is not a fast forward", 422)
+
+    monkeypatch.setattr("services.workflow_service.publish_github_pages", fail_publish)
+
+    response = request(
+        "POST",
+        "/publish-pages",
+        json={
+            "repo_url": "example/project",
+            "token": "secret",
+            "branch": "docs-review",
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "GitHub publish failed for 'example/project': Update is not a fast forward"
+
+
+def test_publish_pages_returns_raw_unexpected_error_detail(monkeypatch):
+    monkeypatch.setattr(
+        "services.workflow_service.publish_github_pages",
+        lambda repo_url, branch, token, low_content_min_lines: (_ for _ in ()).throw(
+            RuntimeError("raw github error body")
+        ),
+    )
+
+    response = request(
+        "POST",
+        "/publish-pages",
+        json={
+            "repo_url": "example/project",
+            "token": "secret",
+            "branch": "docs-review",
+        },
+    )
+
+    assert response.status_code == 500
+    assert response.json()["detail"] == "raw github error body"
+
+
+def test_publish_pages_uses_provided_low_content_min_lines(monkeypatch):
+    captured = {}
+
+    def fake_publish(repo_url, branch, token, low_content_min_lines):
+        captured["low_content_min_lines"] = low_content_min_lines
+        return True
+
+    monkeypatch.setattr("services.workflow_service.publish_github_pages", fake_publish)
+
+    response = request(
+        "POST",
+        "/publish-pages",
+        json={
+            "repo_url": "example/project",
+            "token": "secret",
+            "branch": "main",
+            "low_content_min_lines": 3,
+        },
+    )
+
+    assert response.status_code == 200
+    assert captured["low_content_min_lines"] == 3
+
+
+def test_publish_pages_uses_default_low_content_min_lines(monkeypatch):
+    captured = {}
+
+    def fake_publish(repo_url, branch, token, low_content_min_lines):
+        captured["low_content_min_lines"] = low_content_min_lines
+        return True
+
+    monkeypatch.setattr("services.workflow_service.publish_github_pages", fake_publish)
+
+    response = request(
+        "POST",
+        "/publish-pages",
+        json={
+            "repo_url": "example/project",
+            "token": "secret",
+            "branch": "main",
+        },
+    )
+
+    assert response.status_code == 200
+    assert captured["low_content_min_lines"] == 4
+
+
+def test_publish_github_pages_degrades_when_autoapi_build_still_fails(monkeypatch, tmp_path):
+    captured = {}
+
+    def fake_download_snapshot(repo_path, source_branch, token, temp_dir):
+        docs_dir = __import__("pathlib").Path(temp_dir) / "docs"
+        docs_dir.mkdir(parents=True, exist_ok=True)
+        (docs_dir / "conf.py").write_text(
+            'extensions = ["sphinx.ext.autodoc", "autoapi.extension"]\nautoapi_dirs = ["../autoapi_include"]\n',
+            encoding="utf-8",
+        )
+        (docs_dir / "index.rst").write_text("Project\n=======\n", encoding="utf-8")
+        return True
+
+    def fake_run_with_filters(temp_dir, conf_py_path, low_content_min_meaningful_lines):
+        return type("Result", (), {"returncode": 1, "stderr": "AttributeError: boom", "stdout": ""})()
+
+    def fake_build_once(temp_dir):
+        api_reference_path = __import__("pathlib").Path(temp_dir) / "docs" / "api_reference.rst"
+        captured["api_reference_text"] = api_reference_path.read_text(encoding="utf-8")
+        build_dir = __import__("pathlib").Path(temp_dir) / "docs" / "build" / "html"
+        build_dir.mkdir(parents=True, exist_ok=True)
+        (build_dir / "index.html").write_text("<html>ok</html>", encoding="utf-8")
+        return type("Result", (), {"returncode": 0, "stderr": "", "stdout": "degraded build ok"})()
+
+    def fake_publish_local(repo_path, build_dir, target_branch, token, source_branch_for_seed):
+        captured["build_dir"] = build_dir
+        captured["published_index"] = (__import__("pathlib").Path(build_dir) / "index.html").read_text(encoding="utf-8")
+        return True
+
+    monkeypatch.setattr("services.sphinx_services.ensure_github_branch", lambda *args, **kwargs: True)
+    monkeypatch.setattr("services.sphinx_services.configure_github_pages", lambda *args, **kwargs: True)
+    monkeypatch.setattr("services.sphinx_services.download_github_branch_snapshot", fake_download_snapshot)
+    monkeypatch.setattr("services.sphinx_services._run_sphinx_build_with_autoapi_filters", fake_run_with_filters)
+    monkeypatch.setattr("services.sphinx_services._build_sphinx_once", fake_build_once)
+    monkeypatch.setattr("services.sphinx_services.publish_local_directory_to_github_branch", fake_publish_local)
+    monkeypatch.setattr("services.sphinx_services.request_github_pages_build", lambda *args, **kwargs: True)
+    monkeypatch.setattr("services.sphinx_services.get_run_log_dir", lambda: str(tmp_path))
+
+    result = publish_github_pages("example/project", "main", "secret")
+
+    assert result is True
+    fallback_report = (tmp_path / "sphinx_publish_fallback.txt").read_text(encoding="utf-8")
+    assert "AttributeError: boom" in fallback_report
+    assert "generated API reference is unavailable for this run" in captured["api_reference_text"]
+    assert "Reason: AutoAPI failure: boom" in captured["api_reference_text"]
+    assert "Traceback" not in captured["api_reference_text"]
+    log_text = (tmp_path / "sphinx_build.log").read_text(encoding="utf-8")
+    assert "=== degraded-publish-retry ===" in log_text
+
+
+def test_publish_github_pages_copies_project_readme_into_build_output(monkeypatch):
+    captured = {}
+
+    def fake_download_snapshot(repo_path, source_branch, token, temp_dir):
+        temp_path = __import__("pathlib").Path(temp_dir)
+        docs_dir = temp_path / "docs"
+        docs_dir.mkdir(parents=True, exist_ok=True)
+        (temp_path / "README.md").write_text("# Actual Project Readme\n", encoding="utf-8")
+        (docs_dir / "conf.py").write_text("extensions = []\n", encoding="utf-8")
+        (docs_dir / "index.rst").write_text("Project\n=======\n", encoding="utf-8")
+        return True
+
+    def fake_run_with_filters(temp_dir, conf_py_path, low_content_min_meaningful_lines):
+        build_dir = __import__("pathlib").Path(temp_dir) / "docs" / "build" / "html"
+        build_dir.mkdir(parents=True, exist_ok=True)
+        (build_dir / "index.html").write_text("<html>ok</html>", encoding="utf-8")
+        return type("Result", (), {"returncode": 0, "stderr": "", "stdout": "build ok"})()
+
+    def fake_publish_local(repo_path, build_dir, target_branch, token, source_branch_for_seed):
+        captured["published_readme"] = (__import__("pathlib").Path(build_dir) / "README.md").read_text(
+            encoding="utf-8"
+        )
+        return True
+
+    monkeypatch.setattr("services.sphinx_services.ensure_github_branch", lambda *args, **kwargs: True)
+    monkeypatch.setattr("services.sphinx_services.configure_github_pages", lambda *args, **kwargs: True)
+    monkeypatch.setattr("services.sphinx_services.download_github_branch_snapshot", fake_download_snapshot)
+    monkeypatch.setattr("services.sphinx_services._run_sphinx_build_with_autoapi_filters", fake_run_with_filters)
+    monkeypatch.setattr("services.sphinx_services.publish_local_directory_to_github_branch", fake_publish_local)
+    monkeypatch.setattr("services.sphinx_services.request_github_pages_build", lambda *args, **kwargs: True)
+
+    result = publish_github_pages("example/project", "main", "secret")
+
+    assert result is True
+    assert captured["published_readme"] == "# Actual Project Readme\n"
+
+
+def test_publish_github_pages_raises_when_pages_rebuild_request_fails(monkeypatch, tmp_path):
+    def fake_download_snapshot(repo_path, source_branch, token, temp_dir):
+        docs_dir = __import__("pathlib").Path(temp_dir) / "docs"
+        docs_dir.mkdir(parents=True, exist_ok=True)
+        (docs_dir / "conf.py").write_text("extensions = []\n", encoding="utf-8")
+        (docs_dir / "index.rst").write_text("Project\n=======\n", encoding="utf-8")
+        return True
+
+    def fake_run_with_filters(temp_dir, conf_py_path, low_content_min_meaningful_lines):
+        build_dir = __import__("pathlib").Path(temp_dir) / "docs" / "build" / "html"
+        build_dir.mkdir(parents=True, exist_ok=True)
+        (build_dir / "index.html").write_text("<html>ok</html>", encoding="utf-8")
+        return type("Result", (), {"returncode": 0, "stderr": "", "stdout": "build ok"})()
+
+    monkeypatch.setattr("services.sphinx_services.ensure_github_branch", lambda *args, **kwargs: True)
+    monkeypatch.setattr("services.sphinx_services.configure_github_pages", lambda *args, **kwargs: True)
+    monkeypatch.setattr("services.sphinx_services.download_github_branch_snapshot", fake_download_snapshot)
+    monkeypatch.setattr("services.sphinx_services._run_sphinx_build_with_autoapi_filters", fake_run_with_filters)
+    monkeypatch.setattr(
+        "services.sphinx_services.publish_local_directory_to_github_branch", lambda *args, **kwargs: True
+    )
+    monkeypatch.setattr(
+        "services.sphinx_services.request_github_pages_build",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            GitHubApiError("GitHub Pages rebuild request failed for 'example/project': denied", status_code=403)
+        ),
+    )
+    monkeypatch.setattr("services.sphinx_services.get_run_log_dir", lambda: str(tmp_path))
+
+    with __import__("pytest").raises(PublishPagesError, match="GitHub Pages rebuild request failed"):
+        publish_github_pages("example/project", "main", "secret")
+
+
+def test_create_sphinx_setup_mirrors_all_analyzed_python_files(tmp_path, monkeypatch):
+    analysis_path = tmp_path / "analysis.csv"
+    analysis_path.write_text(
+        "file_path,missing_docstring\n"
+        "src/models/repo_request.py,False\n"
+        "src/models/repo_request.py,True\n"
+        "src/services/doc_services.py,True\n"
+        "src/services/doc_services.py,True\n"
+        "src/router/router.py,False\n"
+        "src/router/router.py,False\n",
+        encoding="utf-8",
+    )
+
+    captured = {}
+
+    monkeypatch.setattr(
+        "services.sphinx_services.extract_repo_path",
+        lambda repo_url, provider="github": "example/project",
+    )
+    monkeypatch.setattr(
+        "services.sphinx_services.create_directory_and_add_files",
+        lambda repo_path, dir_path, file_paths, branch, token, provider: captured.setdefault(
+            "file_paths", list(file_paths)
+        )
+        or True,
+    )
+    monkeypatch.setattr(
+        "services.sphinx_services._create_sample_sphinx_scaffold",
+        lambda repo_path, branch, token, provider, project_name: True,
+    )
+    created_files = []
+
+    def fake_create_a_file(repo_path, branch, file_path, content, token, provider):
+        created_files.append(file_path)
+        return True
+
+    monkeypatch.setattr("services.sphinx_services.create_a_file", fake_create_a_file)
+
+    result = create_sphinx_setup(
+        "github",
+        "https://github.com/example/project",
+        "secret",
+        "main",
+        str(analysis_path),
+        0.50,
+    )
+
+    assert result is True
+    assert AUTOAPI_DOCSTRING_THRESHOLD == 0.50
+    assert captured["file_paths"] == [
+        "src/models/repo_request.py",
+        "src/router/router.py",
+        "src/services/doc_services.py",
+    ]
+    assert created_files == ["update_conf.py"]
+
+
+def test_project_name_from_repo_path_humanizes_repo_name():
+    assert (
+        _project_name_from_repo_path("Digital-Metabolic-Twin-Centre/test_documentation_sphinx_site")
+        == "Test Documentation Sphinx Site"
+    )
+
+
+def test_ensure_api_index_replaces_sphinx_quickstart_homepage(tmp_path):
+    index_path = tmp_path / "docs" / "source" / "index.rst"
+    index_path.parent.mkdir(parents=True)
+    index_path.write_text(
+        "Welcome to Project_Name's documentation!\n"
+        "========================================\n\n"
+        "Add your content using ``reStructuredText`` syntax.\n",
+        encoding="utf-8",
+    )
+
+    _ensure_api_index(str(index_path), "Example Project")
+
+    index_text = index_path.read_text(encoding="utf-8")
+    assert "Example Project" in index_text
+    assert "api_reference" in index_text
+    assert "Add your content" not in index_text
+    assert (index_path.parent / "api_reference.rst").exists()
+
+
+def test_discover_autoapi_reference_entries_uses_actual_mirrored_top_level_modules(tmp_path):
+    autoapi_root = tmp_path / "autoapi_include" / "api"
+    autoapi_root.mkdir(parents=True)
+    (autoapi_root / "models.py").write_text("class Model:\n    pass\n", encoding="utf-8")
+    (autoapi_root / "services").mkdir()
+    (autoapi_root / "services" / "job_service.py").write_text("def run():\n    return 1\n", encoding="utf-8")
+
+    entries = _discover_autoapi_reference_entries(str(tmp_path))
+
+    assert entries == [
+        "autoapi/api/models/index",
+        "autoapi/api/services/job_service/index",
+    ]
+
+
+def test_ensure_api_reference_rewrites_default_scaffold_to_actual_entries(tmp_path):
+    docs_dir = tmp_path / "docs"
+    autoapi_root = tmp_path / "autoapi_include" / "api"
+    docs_dir.mkdir(parents=True)
+    autoapi_root.mkdir(parents=True)
+    (autoapi_root / "models.py").write_text("class Model:\n    pass\n", encoding="utf-8")
+    (docs_dir / "api_reference.rst").write_text(
+        "API Reference\n=============\n\nBrowse the generated API pages directly from the sidebar.\n\n"
+        ".. toctree::\n   :hidden:\n   :maxdepth: 4\n\n   autoapi/src/index\n",
+        encoding="utf-8",
+    )
+
+    _ensure_api_reference(str(docs_dir / "api_reference.rst"), str(tmp_path))
+
+    api_reference_text = (docs_dir / "api_reference.rst").read_text(encoding="utf-8")
+    assert "autoapi/api/models/index" in api_reference_text
+    assert ":hidden:" not in api_reference_text
+
+
+def test_ensure_api_reference_rewrites_visible_placeholder_text(tmp_path):
+    docs_dir = tmp_path / "docs"
+    autoapi_root = tmp_path / "autoapi_include" / "src"
+    docs_dir.mkdir(parents=True)
+    autoapi_root.mkdir(parents=True)
+    (autoapi_root / "__init__.py").write_text("", encoding="utf-8")
+    (autoapi_root / "main.py").write_text("def run():\n    return True\n", encoding="utf-8")
+    (docs_dir / "api_reference.rst").write_text(
+        "API Reference\n=============\n\nBrowse the generated API pages below.\n\n",
+        encoding="utf-8",
+    )
+
+    _ensure_api_reference(str(docs_dir / "api_reference.rst"), str(tmp_path))
+
+    api_reference_text = (docs_dir / "api_reference.rst").read_text(encoding="utf-8")
+    assert "autoapi/src/index" in api_reference_text
+    assert "autoapi/src/main/index" in api_reference_text
+
+
+def test_ensure_sphinx_project_name_replaces_placeholder(tmp_path):
+    conf_path = tmp_path / "conf.py"
+    conf_path.write_text('project = "Project_Name"\nextensions = []\n', encoding="utf-8")
+
+    _ensure_sphinx_project_name(str(conf_path), "Example Project")
+
+    assert 'project = "Example Project"' in conf_path.read_text(encoding="utf-8")
+
+
+def test_extract_autoapi_module_names_reads_modules_from_sphinx_error():
+    build_output = (
+        "ExtensionError: ... module 'autoapi_include.job_views'\nExtensionError: ... module 'settings_docker'\n"
+    )
+
+    modules = _extract_autoapi_module_names(build_output)
+
+    assert modules == ["autoapi_include.job_views", "settings_docker"]
+
+
+def test_extract_autoapi_module_names_reads_modules_from_docutils_errors():
+    build_output = (
+        "/tmp/repo/docs/autoapi/urls_v1/index.rst:18: ERROR: Unexpected indentation.\n"
+        "/tmp/repo/docs/autoapi/tools/gpu_embed_service/index.rst:4: WARNING: x\n"
+    )
+
+    modules = _extract_autoapi_module_names(build_output)
+
+    assert modules == ["urls_v1", "tools.gpu_embed_service"]
+
+
+def test_extract_autoapi_module_names_uses_last_autoapi_read_file_when_traceback_omits_module():
+    build_output = (
+        "Traceback ... AttributeError: 'NoneType' object has no attribute 'rsplit'\n"
+        "[AutoAPI] Reading files... [ 98%] "
+        "/tmp/autodoc-pages/autoapi_include/api/management/commands/benchmark_methods.py\n"
+        "[AutoAPI] Reading files... [100%] /tmp/autodoc-pages/autoapi_include/api/embeddings/registry.py\n"
+    )
+
+    modules = _extract_autoapi_module_names(build_output)
+
+    assert modules == ["api.embeddings.registry"]
+
+
+def test_find_autoapi_skip_candidates_matches_module_leaf(tmp_path):
+    autoapi_dir = tmp_path / "autoapi_include"
+    (autoapi_dir / "api" / "views").mkdir(parents=True)
+    (autoapi_dir / "webKinPred").mkdir(parents=True)
+    (autoapi_dir / "api" / "views" / "job_views.py").write_text("", encoding="utf-8")
+    (autoapi_dir / "webKinPred" / "settings_docker.py").write_text("", encoding="utf-8")
+
+    job_view_matches = _find_autoapi_skip_candidates(str(tmp_path), "autoapi_include.job_views")
+    settings_matches = _find_autoapi_skip_candidates(str(tmp_path), "settings_docker")
+
+    assert [path.relative_to(tmp_path).as_posix() for path in job_view_matches] == [
+        "autoapi_include/api/views/job_views.py"
+    ]
+    assert [path.relative_to(tmp_path).as_posix() for path in settings_matches] == [
+        "autoapi_include/webKinPred/settings_docker.py"
+    ]
+
+
+def test_find_autoapi_skip_candidates_prefers_full_module_path(tmp_path):
+    autoapi_dir = tmp_path / "autoapi_include"
+    (autoapi_dir / "api").mkdir(parents=True)
+    (autoapi_dir / "api" / "urls_v1.py").write_text("", encoding="utf-8")
+
+    matches = _find_autoapi_skip_candidates(str(tmp_path), "api.urls_v1")
+
+    assert [path.relative_to(tmp_path).as_posix() for path in matches] == ["autoapi_include/api/urls_v1.py"]
+
+
+def test_extract_module_name_from_autoapi_path_handles_package_init(tmp_path):
+    autoapi_root = tmp_path / "autoapi_include"
+    module_path = autoapi_root / "api" / "pkg" / "__init__.py"
+    module_path.parent.mkdir(parents=True)
+    module_path.write_text("", encoding="utf-8")
+
+    assert _extract_module_name_from_autoapi_path(autoapi_root, module_path) == "api.pkg"
+
+
+def test_classify_autoapi_file_skips_by_risky_name_pattern(tmp_path):
+    autoapi_root = tmp_path / "autoapi_include"
+    file_path = autoapi_root / "api" / "urls_v1.py"
+    file_path.parent.mkdir(parents=True)
+    file_path.write_text("def endpoint():\n    return 1\n", encoding="utf-8")
+
+    should_include, reason = _classify_autoapi_file(autoapi_root, file_path)
+
+    assert should_include is False
+    assert reason.startswith("path-pattern:")
+
+
+def test_classify_autoapi_file_uses_dynamic_low_content_threshold(tmp_path):
+    autoapi_root = tmp_path / "autoapi_include"
+    file_path = autoapi_root / "api" / "small_module.py"
+    file_path.parent.mkdir(parents=True)
+    file_path.write_text(
+        "def first():\n    return 1\n\ndef second():\n    return 2\n",
+        encoding="utf-8",
+    )
+
+    should_include_default, reason_default = _classify_autoapi_file(autoapi_root, file_path, 6)
+    should_include_lowered, reason_lowered = _classify_autoapi_file(autoapi_root, file_path, 4)
+
+    assert should_include_default is False
+    assert reason_default == "low-content"
+    assert should_include_lowered is True
+    assert reason_lowered == "included"
+
+
+def test_classify_autoapi_file_skips_import_star(tmp_path):
+    autoapi_root = tmp_path / "autoapi_include"
+    file_path = autoapi_root / "api" / "module.py"
+    file_path.parent.mkdir(parents=True)
+    file_path.write_text(
+        "from package.sub import *\n\n"
+        "def alpha():\n"
+        "    return 1\n"
+        "def beta():\n"
+        "    return 2\n"
+        "def gamma():\n"
+        "    return 3\n",
+        encoding="utf-8",
+    )
+
+    should_include, reason = _classify_autoapi_file(autoapi_root, file_path)
+
+    assert should_include is False
+    assert reason == "import-star"
+
+
+def test_collect_prebuild_autoapi_ignores_tracks_skipped_files(tmp_path):
+    autoapi_root = tmp_path / "autoapi_include"
+    included_file = autoapi_root / "api" / "service.py"
+    skipped_file = autoapi_root / "api" / "views.py"
+    included_file.parent.mkdir(parents=True)
+    included_file.write_text(
+        (
+            "import os\n"
+            "import json\n\n"
+            "def alpha():\n    return os.name\n"
+            "def beta():\n    return 2\n"
+            "class Handler:\n    pass\n"
+        ),
+        encoding="utf-8",
+    )
+    skipped_file.write_text(
+        "def endpoint():\n    return 1\ndef secondary():\n    return 2\ndef tertiary():\n    return 3\n",
+        encoding="utf-8",
+    )
+
+    ignore_patterns, skipped = _collect_prebuild_autoapi_ignores(str(tmp_path))
+
+    assert "*/api/views.py" in ignore_patterns
+    assert "api/service.py" not in ignore_patterns
+    assert any(item["reason"].startswith("path-pattern:") for item in skipped)
+
+
+def test_module_names_to_ignore_patterns_maps_module_failures(tmp_path):
+    autoapi_root = tmp_path / "autoapi_include"
+    module_path = autoapi_root / "api" / "broken.py"
+    module_path.parent.mkdir(parents=True)
+    module_path.write_text("def ok():\n    return 1\n", encoding="utf-8")
+
+    ignore_patterns, skipped = _module_names_to_ignore_patterns(str(tmp_path), ["api.broken"])
+
+    assert ignore_patterns == ["*/api/broken.py"]
+    assert skipped[0]["reason"] == "fallback-module-failure"
+
+
+def test_apply_autoapi_runtime_settings_writes_ignore_and_suppressions(tmp_path):
+    conf_path = tmp_path / "conf.py"
+    conf_path.write_text("project = 'X'\n", encoding="utf-8")
+
+    _apply_autoapi_runtime_settings(str(conf_path), ["api/broken.py", "api/broken.py"])
+
+    conf_text = conf_path.read_text(encoding="utf-8")
+    assert "AUTODOC AUTOAPI RUNTIME SETTINGS START" in conf_text
+    assert "autoapi_ignore = [" in conf_text
+    assert "'api/broken.py'" in conf_text
+    assert "suppress_warnings = [" in conf_text
+    assert "'autoapi.python_import_resolution'" in conf_text
+
+
+def test_to_autoapi_ignore_pattern_adds_prefix_wildcard():
+    assert _to_autoapi_ignore_pattern("api/views.py") == "*/api/views.py"
+
+
+def test_classify_autoapi_file_skips_settings_module_name(tmp_path):
+    autoapi_root = tmp_path / "autoapi_include"
+    file_path = autoapi_root / "webKinPred" / "settings_docker.py"
+    file_path.parent.mkdir(parents=True)
+    file_path.write_text("from ..x import y\n", encoding="utf-8")
+
+    should_include, reason = _classify_autoapi_file(autoapi_root, file_path)
+
+    assert should_include is False
+    assert reason.startswith("path-pattern:")
+
+
+def test_run_sphinx_build_with_autoapi_filters_uses_single_fallback_retry(tmp_path, monkeypatch):
+    autoapi_root = tmp_path / "autoapi_include"
+    conf_path = tmp_path / "docs" / "source" / "conf.py"
+    build_path = tmp_path / "docs" / "build" / "html"
+    broken_module = autoapi_root / "api" / "broken.py"
+    good_module = autoapi_root / "api" / "service.py"
+    broken_module.parent.mkdir(parents=True)
+    conf_path.parent.mkdir(parents=True)
+    build_path.mkdir(parents=True)
+    broken_module.write_text(
+        "import json\n\n"
+        "def broken():\n    return json.loads('{}')\n"
+        "def x():\n    return 1\n"
+        "def y():\n    return 2\n"
+        "def z():\n    return 3\n",
+        encoding="utf-8",
+    )
+    good_module.write_text(
+        "import os\n\n"
+        "def ok():\n    return os.name\n"
+        "def x():\n    return 1\n"
+        "def y():\n    return 2\n"
+        "class A:\n    pass\n",
+        encoding="utf-8",
+    )
+    conf_path.write_text("project = 'X'\n", encoding="utf-8")
+
+    calls = {"count": 0}
+
+    def fake_run(*args, **kwargs):
+        calls["count"] += 1
+        if calls["count"] == 1:
+            return type(
+                "Result",
+                (),
+                {
+                    "returncode": 1,
+                    "stderr": "/tmp/docs/autoapi/api/broken/index.rst:10: ERROR: bad",
+                    "stdout": "",
+                },
+            )()
+        return type("Result", (), {"returncode": 0, "stderr": "", "stdout": ""})()
+
+    monkeypatch.setattr("services.sphinx_services.subprocess.run", fake_run)
+    monkeypatch.setattr("services.sphinx_services.get_run_log_dir", lambda: str(tmp_path))
+
+    result = _run_sphinx_build_with_autoapi_filters(str(tmp_path), str(conf_path))
+
+    assert result.returncode == 0
+    assert calls["count"] == 2
+    report_text = (tmp_path / "skipped_autoapi_files.txt").read_text(encoding="utf-8")
+    assert "fallback-module-failure" in report_text
+
+
+def test_run_sphinx_build_with_autoapi_filters_writes_full_sphinx_build_log(tmp_path, monkeypatch):
+    autoapi_root = tmp_path / "autoapi_include"
+    conf_path = tmp_path / "docs" / "source" / "conf.py"
+    build_path = tmp_path / "docs" / "build" / "html"
+    broken_module = autoapi_root / "api" / "broken.py"
+    broken_module.parent.mkdir(parents=True)
+    conf_path.parent.mkdir(parents=True)
+    build_path.mkdir(parents=True)
+    broken_module.write_text(
+        "def broken():\n    return 1\ndef x():\n    return 1\ndef y():\n    return 2\ndef z():\n    return 3\n",
+        encoding="utf-8",
+    )
+    conf_path.write_text("project = 'X'\n", encoding="utf-8")
+
+    calls = {"count": 0}
+
+    def fake_run(*args, **kwargs):
+        calls["count"] += 1
+        if calls["count"] == 1:
+            return type(
+                "Result",
+                (),
+                {
+                    "returncode": 1,
+                    "stderr": "AttributeError: boom",
+                    "stdout": "[AutoAPI] Reading files... [100%] /tmp/work/autoapi_include/api/broken.py",
+                },
+            )()
+        return type("Result", (), {"returncode": 0, "stderr": "", "stdout": "build succeeded"})()
+
+    monkeypatch.setattr("services.sphinx_services.subprocess.run", fake_run)
+    monkeypatch.setattr("services.sphinx_services.get_run_log_dir", lambda: str(tmp_path))
+
+    result = _run_sphinx_build_with_autoapi_filters(str(tmp_path), str(conf_path))
+
+    assert result.returncode == 0
+    log_text = (tmp_path / "sphinx_build.log").read_text(encoding="utf-8")
+    assert "=== initial-build ===" in log_text
+    assert "=== fallback-retry ===" in log_text
+    assert "AttributeError: boom" in log_text
+    assert "build succeeded" in log_text
+    assert "*/api/broken.py" in log_text
+
+
+def test_suggest_python_docstrings_pr_returns_success(monkeypatch):
+    captured = {}
+
+    def fake_create_pr(provider, repo_url, token, base_branch, suggestion_branch, title, max_docstrings):
+        captured["suggestion_branch"] = suggestion_branch
+        return {
+            "status": "success",
+            "pull_request_url": "https://github.com/example/project/pull/1",
+        }
+
+    monkeypatch.setattr(
+        "services.workflow_service.create_python_docstring_pull_request",
+        fake_create_pr,
+    )
+    monkeypatch.setattr(
+        "router.router._default_docstring_suggestion_branch",
+        lambda: "autodocs-docstring-suggestions-20260424-1430",
+    )
+
+    response = request(
+        "POST",
+        "/suggest-python-docstrings-pr",
+        json={
+            "provider": "github",
+            "repo_url": "example/project",
+            "token": "secret",
+            "base_branch": "main",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "success"
+    assert captured["suggestion_branch"] == "autodocs-docstring-suggestions-20260424-1430"
+
+
+def test_suggest_python_docstrings_pr_uses_provided_suggestion_branch(monkeypatch):
+    captured = {}
+
+    def fake_create_pr(provider, repo_url, token, base_branch, suggestion_branch, title, max_docstrings):
+        captured["suggestion_branch"] = suggestion_branch
+        return {
+            "status": "success",
+            "pull_request_url": "https://github.com/example/project/pull/1",
+        }
+
+    monkeypatch.setattr(
+        "services.workflow_service.create_python_docstring_pull_request",
+        fake_create_pr,
+    )
+
+    response = request(
+        "POST",
+        "/suggest-python-docstrings-pr",
+        json={
+            "provider": "github",
+            "repo_url": "example/project",
+            "token": "secret",
+            "base_branch": "main",
+            "suggestion_branch": "autodocs/custom-branch",
+        },
+    )
+
+    assert response.status_code == 200
+    assert captured["suggestion_branch"] == "autodocs/custom-branch"
+
+
+def test_suggest_python_docstrings_pr_returns_standard_no_changes_payload(monkeypatch):
+    monkeypatch.setattr(
+        "services.workflow_service.create_python_docstring_pull_request",
+        lambda provider, repo_url, token, base_branch, suggestion_branch, title, max_docstrings: {
+            "status": "no_changes",
+            "provider": "github",
+            "base_branch": base_branch,
+            "suggestion_branch": suggestion_branch,
+            "pull_request_url": None,
+            "files_changed": 0,
+            "docstrings_added": 0,
+            "changed_files": [],
+            "message": "No new Python docstring suggestions are available for this branch.",
+            "detail": "No new Python docstring suggestions are available for this branch.",
+        },
+    )
+
+    response = request(
+        "POST",
+        "/suggest-python-docstrings-pr",
+        json={
+            "provider": "github",
+            "repo_url": "example/project",
+            "token": "secret",
+            "base_branch": "main",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "no_changes"
+    assert response.json()["pull_request_url"] is None
+    assert response.json()["message"] == ("No new Python docstring suggestions are available for this branch.")
+
+
+def test_suggest_python_docstrings_pr_requires_base_branch():
+    response = request(
+        "POST",
+        "/suggest-python-docstrings-pr",
+        json={
+            "provider": "github",
+            "repo_url": "example/project",
+            "token": "secret",
+            "base_branch": "",
+        },
+    )
+
+    assert response.status_code == 400

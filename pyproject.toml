@@ -1,48 +1,25 @@
 [project]
-name = "autodoc"
-version = "0.5.1"
-description = "Automated documentation generator for code repositories."
+name = "autodoc-v6"
+version = "6.3.0"
+description = "Automating SDLC Process Documentation through Retrieval and Synthesis of Software Artefacts Using an Agentic LLM-RAG Framework"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 dependencies = [
-    "fastapi==0.135.3",
-    "openai==1.99.9",
-    "pandas==2.3.1",
-    "pydantic==2.11.7",
-    "python-dotenv==1.2.2",
-    "python-gitlab==6.2.0",
-    "requests==2.33.0",
-    "tqdm==4.67.1",
-    "uvicorn==0.35.0",
+    "openai>=1.50.0",
+    "pydantic>=2.8.0",
+    "python-dotenv>=1.0.0",
+    "PyMuPDF>=1.24.0",
 ]
 
 [dependency-groups]
-docs = [
-    "astroid<4",
-    "renku-sphinx-theme",
-    "sphinx==8.2.3",
-    "sphinx-autoapi==3.6.0",
-    "sphinx-rtd-theme==3.0.2",
-]
 dev = [
-    { include-group = "docs" },
-    "httpx==0.28.1",
-    "pytest==9.0.3",
-    "pytest-cov==6.2.1",
-    "ruff==0.12.7",
+    "pytest>=8.0.0",
+    "ruff>=0.5.0",
 ]
 
 [tool.ruff]
 line-length = 120
-target-version = "py311"
+target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
-
-[tool.pytest.ini_options]
-pythonpath = ["src"]
-testpaths = ["tests"]
-addopts = "-q"
-
-[tool.pyright]
-extraPaths = ["src"]
