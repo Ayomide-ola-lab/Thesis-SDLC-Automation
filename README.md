@@ -127,8 +127,8 @@ To evaluate generated documentation against research-stage codebases without pen
 ### Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/Ayomide-ola-lab/Optarrow-.git
-   cd autodoc
+   git clone https://github.com/Ayomide-ola-lab/Thesis-SDLC-Automation.git
+   cd Thesis-SDLC-Automation
    ```
 2. Create and activate a virtual environment:
    ```bash
