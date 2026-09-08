@@ -131,27 +131,50 @@ class MultimodalIngestionAgent:
 class CleanContextExtractor:
     def __init__(self, repo_path: Path):
         self.repo_path = repo_path
-        self.skip_dirs = {'.git', '.venv', '__pycache__', 'universal_engine', 'scratch', 'docs', 'tests', 'output'}
+        self.skip_dirs = {
+            '.git', '.github', '.venv', 'venv', 'env', '__pycache__', 
+            'universal_engine', 'scratch', 'docs', 'tests', 'output', 
+            'node_modules', 'optArrow-rag', 'slides', '.cache', '.tox', 
+            'dist', 'build', '.idea', '.vscode'
+        }
+        self.supported_exts = {'.py', '.jl', '.m', '.json', '.yaml', '.yml', '.toml', '.dockerfile', '.md', '.txt'}
 
     def determine_source_type(self, path: Path) -> EvidenceSourceType:
         parts = path.parts
         if 'tests' in parts or path.name.startswith('test_'): return EvidenceSourceType.TEST
         if 'universal_engine' in parts or 'scratch' in parts: return EvidenceSourceType.RESEARCH_ARTIFACT
-        if path.suffix in ['.json', '.yaml', '.toml']: return EvidenceSourceType.CONFIGURATION
+        if path.suffix in ['.json', '.yaml', '.yml', '.toml']: return EvidenceSourceType.CONFIGURATION
         return EvidenceSourceType.IMPLEMENTATION
 
     def extract_code_units(self) -> List[EvidenceUnit]:
         units = []
-        files = [p for p in self.repo_path.rglob("*") if p.is_file() and not any(skip in p.parts for skip in self.skip_dirs) and p.suffix != '.pdf']
         unit_id = 0
-        for f in files:
-            src_type = self.determine_source_type(f)
-            if src_type == EvidenceSourceType.RESEARCH_ARTIFACT: continue
-            try:
-                content = f.read_text(encoding="utf-8", errors="ignore")
-                unit_id += 1
-                units.append(EvidenceUnit(id=f"EV-{unit_id}", file=str(f.relative_to(self.repo_path)), symbol=None, evidence_type="file_content", source_type=src_type, epistemic_type="IMPLEMENTED", language=f.suffix, content=content[:1500], relationships=[], confidence="HIGH"))
-            except: pass
+        for root, dirs, files in os.walk(self.repo_path):
+            dirs[:] = [d for d in dirs if d not in self.skip_dirs and not d.startswith('.')]
+            for file_name in files:
+                f = Path(root) / file_name
+                if f.suffix.lower() not in self.supported_exts and 'dockerfile' not in file_name.lower():
+                    continue
+                src_type = self.determine_source_type(f)
+                if src_type == EvidenceSourceType.RESEARCH_ARTIFACT:
+                    continue
+                try:
+                    content = f.read_text(encoding="utf-8", errors="ignore")
+                    unit_id += 1
+                    units.append(EvidenceUnit(
+                        id=f"EV-{unit_id}",
+                        file=str(f.relative_to(self.repo_path)),
+                        symbol=None,
+                        evidence_type="file_content",
+                        source_type=src_type,
+                        epistemic_type="IMPLEMENTED",
+                        language=f.suffix,
+                        content=content[:1500],
+                        relationships=[],
+                        confidence="HIGH"
+                    ))
+                except Exception:
+                    pass
         return units
 
 class GenericKeywordRetriever:
@@ -242,13 +265,18 @@ def run_v6_3_pipeline(process_name: str, standard_path: Path, global_units: List
     return FinalReports(process_document=doc_1, audit_report=doc_2)
 
 if __name__ == "__main__":
-    # Resolve default paths relative to repository root
-    default_repo = os.getenv("TARGET_REPO_PATH", str((AUTODOC_ROOT.parent / "OPTARROW GIT" / "optArrow").resolve()))
-    if not Path(default_repo).exists():
-        # Fallback to sibling directory 'optArrow' if present
-        sibling_repo = (AUTODOC_ROOT.parent / "optArrow").resolve()
-        if sibling_repo.exists():
-            default_repo = str(sibling_repo)
+    # Resolve default repository path: CLI arg > TARGET_REPO_PATH > sensible local fallbacks
+    env_repo = os.getenv("TARGET_REPO_PATH")
+    fallback_sibling = (AUTODOC_ROOT.parent / "optArrow").resolve()
+    fallback_thesis = (AUTODOC_ROOT.parent / "OPTARROW GIT" / "optArrow").resolve()
+
+    default_repo = None
+    if env_repo and Path(env_repo).exists():
+        default_repo = env_repo
+    elif fallback_sibling.exists():
+        default_repo = str(fallback_sibling)
+    elif fallback_thesis.exists():
+        default_repo = str(fallback_thesis)
 
     parser = argparse.ArgumentParser(description="V6.3 Multimodal Agentic SDLC Process Documentation Pipeline")
     parser.add_argument("--repo", type=str, default=default_repo, help="Path to target codebase repository (or set TARGET_REPO_PATH)")
@@ -257,10 +285,15 @@ if __name__ == "__main__":
     parser.add_argument("--output-dir", type=str, default=str((AUTODOC_ROOT / "outputs" / "representative_eval").resolve()), help="Directory to save generated engineering specifications and gap audits")
     args = parser.parse_args()
     
+    if not args.repo:
+        print("[ERROR] No target repository specified.")
+        print("Please supply a path using --repo <path> or set TARGET_REPO_PATH in your .env file.")
+        sys.exit(1)
+
     target_repo = Path(args.repo)
     if not target_repo.exists():
         print(f"[ERROR] Target repository not found at: {target_repo}")
-        print("Please supply a valid path via --repo <path> or set the TARGET_REPO_PATH environment variable.")
+        print("Please verify the path supplied via --repo <path> or TARGET_REPO_PATH.")
         sys.exit(1)
 
     standard_file = Path(args.standard)
