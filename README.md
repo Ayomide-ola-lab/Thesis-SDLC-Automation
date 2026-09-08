@@ -169,9 +169,9 @@ python universal_engine/pipeline_v6_3.py \
   --output-dir "outputs/representative_eval"
 ```
 
-| Argument | Description | Default |
+| Argument | Description | Default / Fallback |
 | :--- | :--- | :--- |
-| `--repo` | Path to target codebase repository | `C:/Users/oladi/Desktop/Thesis/OPTARROW GIT/optArrow` |
+| `--repo` | Path to target codebase repository | `../optArrow` (or `TARGET_REPO_PATH` in `.env`) |
 | `--standard` | Path to ISO/IEC TS 33061 markdown standard | `resources/standards/iso_33061_standard.md` |
 | `--pdf` | Path to intended architecture PDF diagram | `resources/case_study/OptArrow_Architecture.pdf` |
 | `--output-dir` | Directory to save generated specs and audits | `outputs/representative_eval` |

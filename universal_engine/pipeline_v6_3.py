@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from enum import Enum
-import fitz  # PyMuPDF for Vision
+import pymupdf as fitz  # PyMuPDF for Vision
 
 class TokenTelemetry:
     @staticmethod
@@ -242,13 +242,33 @@ def run_v6_3_pipeline(process_name: str, standard_path: Path, global_units: List
     return FinalReports(process_document=doc_1, audit_report=doc_2)
 
 if __name__ == "__main__":
+    # Resolve default paths relative to repository root
+    default_repo = os.getenv("TARGET_REPO_PATH", str((AUTODOC_ROOT.parent / "OPTARROW GIT" / "optArrow").resolve()))
+    if not Path(default_repo).exists():
+        # Fallback to sibling directory 'optArrow' if present
+        sibling_repo = (AUTODOC_ROOT.parent / "optArrow").resolve()
+        if sibling_repo.exists():
+            default_repo = str(sibling_repo)
+
     parser = argparse.ArgumentParser(description="V6.3 Multimodal Agentic SDLC Process Documentation Pipeline")
-    parser.add_argument("--repo", type=str, default=str(Path("C:/Users/oladi/Desktop/Thesis/OPTARROW GIT/optArrow")), help="Path to target codebase repository")
-    parser.add_argument("--standard", type=str, default=str(AUTODOC_ROOT / "resources" / "standards" / "iso_33061_standard.md"), help="Path to ISO/IEC TS 33061 standard text")
-    parser.add_argument("--pdf", type=str, default=str(AUTODOC_ROOT / "resources" / "case_study" / "OptArrow_Architecture.pdf"), help="Path to intended visual architecture PDF diagram")
-    parser.add_argument("--output-dir", type=str, default=str(AUTODOC_ROOT / "outputs" / "representative_eval"), help="Directory to save generated engineering specifications and gap audits")
+    parser.add_argument("--repo", type=str, default=default_repo, help="Path to target codebase repository (or set TARGET_REPO_PATH)")
+    parser.add_argument("--standard", type=str, default=str((AUTODOC_ROOT / "resources" / "standards" / "iso_33061_standard.md").resolve()), help="Path to ISO/IEC TS 33061 standard text")
+    parser.add_argument("--pdf", type=str, default=str((AUTODOC_ROOT / "resources" / "case_study" / "OptArrow_Architecture.pdf").resolve()), help="Path to intended visual architecture PDF diagram")
+    parser.add_argument("--output-dir", type=str, default=str((AUTODOC_ROOT / "outputs" / "representative_eval").resolve()), help="Directory to save generated engineering specifications and gap audits")
     args = parser.parse_args()
     
+    target_repo = Path(args.repo)
+    if not target_repo.exists():
+        print(f"[ERROR] Target repository not found at: {target_repo}")
+        print("Please supply a valid path via --repo <path> or set the TARGET_REPO_PATH environment variable.")
+        sys.exit(1)
+
+    standard_file = Path(args.standard)
+    if not standard_file.exists():
+        print(f"[ERROR] ISO standard file not found at: {standard_file}")
+        print("Please supply an authorized standard markdown file via --standard <path>.")
+        sys.exit(1)
+
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -257,16 +277,19 @@ if __name__ == "__main__":
     global_units = []
     
     # 1. Multimodal Vision Extraction
-    if Path(args.pdf).exists():
+    pdf_file = Path(args.pdf)
+    if pdf_file.exists():
         print("Extracting INTENDED architecture from PDF Blueprint via Vision...")
         vision_agent = MultimodalIngestionAgent()
-        visual_arch = vision_agent.parse_pdf(Path(args.pdf))
+        visual_arch = vision_agent.parse_pdf(pdf_file)
         global_units.extend(vision_agent.convert_to_evidence(visual_arch))
         print(f"Extracted {len(global_units)} structural facts from diagram.")
+    else:
+        print(f"[WARN] Architectural PDF diagram not found at: {pdf_file}. Continuing with source code only.")
     
     # 2. Code Extraction
     print("Extracting IMPLEMENTED architecture from Clean Code Corpus...")
-    code_units = CleanContextExtractor(Path(args.repo)).extract_code_units()
+    code_units = CleanContextExtractor(target_repo).extract_code_units()
     global_units.extend(code_units)
     print(f"Total Combined Multimodal Evidence Pool: {len(global_units)} units.")
 
