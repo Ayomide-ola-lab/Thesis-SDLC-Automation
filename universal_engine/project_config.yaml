@@ -1,0 +1,12 @@
+project:
+  name: OptArrow
+  context: >
+    OptArrow is an optimization integration engine designed to connect optimization clients and solver backends through a stable, high-performance transport layer. Its current runtime centers on Python and Julia backends, and it can also be called from environments such as MATLAB through a lightweight client interface. Primary Objective: Solve optimization problems (LP, QP). Stakeholders: Software Engineers, Researchers, Data Scientists, and Optimization Specialists.
+
+processes:
+  - name: System/software requirements definition process
+    id: TEC.3
+  - name: Architecture definition process
+    id: TEC.4
+  - name: Design definition process
+    id: TEC.5
