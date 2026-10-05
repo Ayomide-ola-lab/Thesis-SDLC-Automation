@@ -365,6 +365,11 @@ if __name__ == "__main__":
     
     auth_knowledge = config['project']['context']
     
+    interview_file = Path(__file__).parent / "output_v6_4_corrected/V6.4_Corrected_Interview_Findings.md"
+    if interview_file.exists():
+        print("[0] Loading Developer Interview Evidence...")
+        auth_knowledge += "\n\n--- DEVELOPER INTERVIEW EVIDENCE ---\n" + interview_file.read_text(encoding="utf-8")
+    
     print("=== V6.4 (CORRECTED) AGENTIC LLM PROCESSING WORKFLOW ===")
     
     # Restored Multimodality & Strict Filtering
@@ -409,11 +414,14 @@ if __name__ == "__main__":
         # Accumulate context
         prev_docs_context += f"\n\n--- Document: {proc['id']} ---\n{doc}"
         
-        (output_dir / f"V6.4_Corrected_{proc['id']}_Document.md").write_text(doc, encoding="utf-8")
+        name_map = {"TEC.3": "Requirement_process_tec3", "TEC.4": "Architecture_process_tec4", "TEC.5": "Design_process_tec5"}
+        prefix = name_map.get(proc['id'], proc['id'])
+        
+        (output_dir / f"{prefix}_Document.md").write_text(doc, encoding="utf-8")
         
         print("[5B] Agent 4: Evidence Assessment...")
         assessment = core.assess_evidence(process_def, claims, client)
         audit_md = render_markdown_assessment(assessment)
-        (output_dir / f"V6.4_Corrected_{proc['id']}_Assessment.md").write_text(audit_md, encoding="utf-8")
+        (output_dir / f"{prefix}_Assessment.md").write_text(audit_md, encoding="utf-8")
         
     print("\n[SUCCESS] V6.4 Corrected Execution Complete!")
