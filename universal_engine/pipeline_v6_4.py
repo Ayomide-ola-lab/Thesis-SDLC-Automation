@@ -313,11 +313,19 @@ class AgentCore:
         Claims: {claims.model_dump_json()}"""
         return client.beta.chat.completions.parse(model="gpt-4o", messages=[{"role": "user", "content": prompt}], response_format=DocumentPlan).choices[0].message.parsed
 
-    def write_engineering_document(self, plan: DocumentPlan, claims: EngineeringSynthesis, auth_knowledge: str, prev_docs: str, client) -> str:
+    def write_engineering_document(self, plan: DocumentPlan, claims: EngineeringSynthesis, auth_knowledge: str, prev_docs: str, process_id: str, client) -> str:
+        if "TEC.3" in process_id:
+            phase_instruction = "CRITICAL PHASE INSTRUCTION: You are writing a Requirements Specification. Requirements describe INTENTIONS. Use forward-looking, prescriptive language (e.g., 'The system shall...', 'The architecture will...'). Do not describe the system as already built; describe what it is required to do."
+        elif "TEC.4" in process_id:
+            phase_instruction = "CRITICAL PHASE INSTRUCTION: You are writing an Architecture Document. Describe structurally HOW the requirements are developed and mapped to architectural components."
+        else:
+            phase_instruction = "CRITICAL PHASE INSTRUCTION: You are writing a Design Document. Describe exactly HOW the architectural components are implemented in the code."
+
         prompt = f"""Write a deeply technical software specification.
         CRITICAL PERSONA: You are writing the OFFICIAL live documentation for the OptArrow website. 
         DO NOT write like an external auditor. DO NOT use phrases like 'The interview confirmed', 'The repository lacks', or 'Evidence suggests'. 
         Instead, state current implementations authoritatively (e.g., 'OptArrow currently manages feedback via GitHub Issues') and frame any process gaps as forward-looking roadmap items with industry-standard recommendations (e.g., 'Future scaling is expected to implement formal Architecture Decision Records (ADRs)').
+        {phase_instruction}
         CRITICAL: Explain mechanisms, interfaces, and how information changes representation as it moves through the system (e.g., Python Dict -> Arrow IPC -> Julia).
         Constrain EVERY substantive statement to the provided validated claims. Do not hallucinate capabilities.
         Context: {auth_knowledge}
@@ -396,7 +404,7 @@ if __name__ == "__main__":
         
         print("[5A] Agent 3A/3B: Document Planning & Deep Technical Writing...")
         plan = core.plan_document(process_def, claims, auth_knowledge, prev_docs_context, client)
-        doc = core.write_engineering_document(plan, claims, auth_knowledge, prev_docs_context, client)
+        doc = core.write_engineering_document(plan, claims, auth_knowledge, prev_docs_context, proc['id'], client)
         
         # Accumulate context
         prev_docs_context += f"\n\n--- Document: {proc['id']} ---\n{doc}"
