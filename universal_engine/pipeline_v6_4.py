@@ -305,9 +305,41 @@ class AgentCore:
         Facts: {repo_model.model_dump_json()}"""
         return client.beta.chat.completions.parse(model="gpt-4o", messages=[{"role": "user", "content": prompt}], response_format=EngineeringSynthesis).choices[0].message.parsed
 
-    def plan_document(self, process: ExtractedProcess, claims: EngineeringSynthesis, auth_knowledge: str, prev_docs: str, client) -> DocumentPlan:
-        prompt = f"""Create semantic headings driven by validated project claims, NOT generic process language.
-        NO ISO LEAKAGE. Base sections on actual engineering mechanisms identified in the claims.
+    def plan_document(self, process: ExtractedProcess, claims: EngineeringSynthesis, auth_knowledge: str, prev_docs: str, process_id: str, client) -> DocumentPlan:
+        if "TEC.3" in process_id:
+            schema = """TEC.3 Requirements Schema:
+            1. System Context & Overview
+            2. Stakeholder Needs & Feedback Mechanisms
+            3. Functional Requirements (Strict Input/Behavior/Output definitions)
+            4. Non-Functional Requirements (Performance, Compatibility)
+            5. Requirements Traceability & Governance"""
+        elif "TEC.4" in process_id:
+            schema = """TEC.4 Architecture Schema:
+            1. System Architecture Context
+            2. Major Components & Responsibilities
+            3. Interfaces & Data Flow (Cross-language communication)
+            4. Runtime Interactions & Sequence
+            5. Technology Decisions & Rationale
+            6. Deployment Boundaries & Constraints
+            7. Architecture Governance & Known Gaps"""
+        elif "TEC.5" in process_id:
+            schema = """TEC.5 Detailed Design Schema:
+            1. Module & Class Structure
+            2. API Contracts & Data Schemas
+            3. Data Transformations & Protocol Structures (e.g., Arrow IPC internals)
+            4. Component Internals & Solver Adapters
+            5. Error Handling & Edge Cases
+            6. Detailed Sequence of Operations
+            7. Implementation-Level Decisions"""
+        else:
+            schema = "Standard Engineering Document Outline based on Base Practices."
+
+        prompt = f"""Plan a highly technical engineering document for the process: {process.process_name}.
+        CRITICAL: You MUST structure the document exactly according to the following schema:
+        {schema}
+        
+        Create semantic headings that map this schema to the validated engineering mechanisms in the claims.
+        NO ISO LEAKAGE.
         Context: {auth_knowledge}
         Previous Documents Context: {prev_docs}
         Claims: {claims.model_dump_json()}"""
@@ -417,7 +449,7 @@ if __name__ == "__main__":
         claims = HumanValidator().run(claims)
         
         print("[5A] Agent 3A/3B: Document Planning & Deep Technical Writing...")
-        plan = core.plan_document(process_def, claims, auth_knowledge, prev_docs_context, client)
+        plan = core.plan_document(process_def, claims, auth_knowledge, prev_docs_context, proc['id'], client)
         doc = core.write_engineering_document(plan, claims, auth_knowledge, prev_docs_context, proc['id'], client)
         
         # Accumulate context
