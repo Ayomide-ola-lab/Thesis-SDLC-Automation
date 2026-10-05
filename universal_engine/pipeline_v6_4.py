@@ -317,7 +317,16 @@ class AgentCore:
         if "TEC.3" in process_id:
             phase_instruction = "CRITICAL PHASE INSTRUCTION: You are writing a Requirements Specification. Requirements describe INTENTIONS. Use forward-looking, prescriptive language (e.g., 'The system shall...', 'The architecture will...'). Do not describe the system as already built; describe what it is required to do."
         elif "TEC.4" in process_id:
-            phase_instruction = "CRITICAL PHASE INSTRUCTION: You are writing an Architecture Document. Describe structurally HOW the requirements are developed and mapped to architectural components."
+            phase_instruction = """CRITICAL PHASE INSTRUCTION: You are writing a Structural Architecture Document. 
+            Do NOT let interview rationale or process governance dominate this document. The majority of this document MUST be derived from the repository code and visual architecture diagram.
+            You MUST follow this exact structural outline:
+            1. System context
+            2. Components & Responsibilities
+            3. Interfaces & Data Flow (Python/Julia interaction, Arrow transport)
+            4. Runtime interactions & Sequence
+            5. Technology decisions & Rationale (incorporate interview here)
+            6. Deployment & Constraints
+            7. Known architectural gaps (incorporate lack of governance here)"""
         else:
             phase_instruction = "CRITICAL PHASE INSTRUCTION: You are writing a Design Document. Describe exactly HOW the architectural components are implemented in the code."
 
