@@ -315,6 +315,9 @@ class AgentCore:
 
     def write_engineering_document(self, plan: DocumentPlan, claims: EngineeringSynthesis, auth_knowledge: str, prev_docs: str, client) -> str:
         prompt = f"""Write a deeply technical software specification.
+        CRITICAL PERSONA: You are writing the OFFICIAL live documentation for the OptArrow website. 
+        DO NOT write like an external auditor. DO NOT use phrases like 'The interview confirmed', 'The repository lacks', or 'Evidence suggests'. 
+        Instead, state current implementations authoritatively (e.g., 'OptArrow currently manages feedback via GitHub Issues') and frame any process gaps as forward-looking roadmap items with industry-standard recommendations (e.g., 'Future scaling is expected to implement formal Architecture Decision Records (ADRs)').
         CRITICAL: Explain mechanisms, interfaces, and how information changes representation as it moves through the system (e.g., Python Dict -> Arrow IPC -> Julia).
         Constrain EVERY substantive statement to the provided validated claims. Do not hallucinate capabilities.
         Context: {auth_knowledge}
@@ -385,7 +388,7 @@ if __name__ == "__main__":
         print("[3] Agent 1: Repository Understanding...")
         repo_model = core.build_repository_model(retrieved_units, client)
         
-        print("[4] Agent 2: Engineering Synthesis (INTENDED ↔ IMPLEMENTED)...")
+        print("[4] Agent 2: Engineering Synthesis (INTENDED <-> IMPLEMENTED)...")
         claims = core.synthesize_engineering_claims(repo_model, auth_knowledge, client)
         
         claims = TraceabilityValidator().validate(claims, repo_model, retrieved_units)
