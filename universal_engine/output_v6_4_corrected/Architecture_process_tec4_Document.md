@@ -1,62 +1,51 @@
-# OptArrow Architecture Document
+# OptArrow Structural Architecture Document
 
-## Introduction
-OptArrow is an optimization integration engine engineered to bridge optimization clients with solver backends via an efficient, high-performance transport layer. The core runtime capabilities pivot around Python and Julia backends, with supplementary access faciliated through a MATLAB lightweight client interface. The primary objective is to address optimization problems, specifically Linear Programming (LP) and Quadratic Programming (QP). This architectural documentation delineates how requirements are developed, articulated, and transposed into architectural components, following validated project claims.
+## 1. System Context
 
-## Stakeholder Engagement and Feedback Collection
+OptArrow is an advanced integration engine designed to facilitate high-performance connections between optimization clients and solver backends. It achieves this by supporting a diverse range of optimization scenarios through a robust transport architecture centered on Python and Julia backends. Stakeholders, including Software Engineers, Researchers, Data Scientists, and Optimization Specialists, utilize OptArrow for solving mathematical optimization problems, specifically linear programming (LP) and quadratic programming (QP). The system processes input problems from various environments, such as MATLAB, and executes them via the most suitable backend solver, delivering results in the language of the original problem specification.
 
-### Mechanism
-OptArrow currently employs GitHub Issues as the primary channel for stakeholder feedback collection. This ensures that users and stakeholders have a direct line to report issues and contribute suggestions to the ongoing development efforts.
+## 2. Components & Responsibilities
 
-### Future Prospects
-Despite existing mechanisms, formal requirements traceability remains absent, representing critical scope for future enhancement. Implementing a comprehensive traceability system will align stakeholder feedback with decision-making and implementation processes.
+### Core Components:
+- **Python and Julia Backends**: These serve as the primary computational engines, ensuring cross-environment compatibility and high-performance problem-solving.
+- **Apache Arrow**: Handles in-memory transport for efficient data exchange between different language components.
+- **Client Interfaces**: Lightweight interfaces for external environments like MATLAB, enabling seamless bidirectional communication with OptArrow’s core architecture.
 
-## Technology Selection and Architectural Decision Rationale
+The division of responsibilities ensures each component serves a precise function, such as routing, problem interpretation, and computational execution, optimizing the system’s overall performance.
 
-### Apache Arrow Selection
-OptArrow utilizes Apache Arrow for in-memory data transfer, an essential component for ensuring high performance and enabling cross-language compatibility, particularly between Python and Julia environments. This choice supports expedited data representation transition—converting Python dictionaries to Arrow IPC format, subsequently accessible within Julia for optimized computation.
+## 3. Interfaces & Data Flow
 
-### HiGHS Solver Backend
-The HiGHS optimization solver was selected due to its open-source availability and popularity among scientific computing communities. HiGHS provides a robust backend for solving LP and QP problems, integrated directly into the system to deliver scalable computational capabilities.
+OptArrow’s architecture leverages Apache Arrow for in-memory data transport, focusing on cross-language interoperability essential for operations involving Python and Julia. 
+- **Interface Mechanics**: Problems are ingested as Python dictionaries or equivalent Julia structures. Apache Arrow transforms these into a standardized in-memory Inter-Process Communication (IPC) format, allowing them to be processed by the desired solver backend without losing data fidelity.
+- **Data Flow Dynamics**: Upon IPC transformation, data is routed to either the Python or Julia backend, depending on the contextual solver requirements. Post-computation, the results are converted back into the original language format for output, ensuring consistency with the input environment.
 
-## Evolutionary Architecture and Historical Context
+## 4. Runtime Interactions & Sequence
 
-### Iterative Architecture Development
-OptArrow's architecture has evolved iteratively, favoring flexibility and adaptability over a rigid, predefined roadmap. Such evolution allows seamless integration of stakeholder feedback and internal assessments into subsequent iterations.
+### Execution Overview:
+1. **Problem Identification**: The problem source is determined—Python, Julia, or an external interface such as MATLAB.
+2. **Data Transformation**: Input data is formatted into Arrow IPC for internal processing.
+3. **Solver Routing**: The problem is directed to a high-performance solver determined by specified criteria, which may include HiGHS due to its open-source advantages.
+4. **Computation and Output**: The solver processes the input, and results are returned in the originating language format for immediate application by stakeholders.
 
-### Historical Architecture Influence
-The COBRA Toolbox informs the historical context of the project, presenting an architectural approach that once influenced OptArrow's development trajectory. Lessons from past implementations inform the current design choice framework.
+This sequence ensures that data integrity and execution efficiency are maintained throughout the runtime process.
 
-## Design Alternatives and Evaluations
+## 5. Technology Decisions & Rationale
 
-### Data Transfer Protocols
-No alternative data transfer protocols were trialed against Apache Arrow within the initial selection. Future iterations may benefit from exploring systematic trials to compare performance metrics across other potential protocols.
+### Decision Criteria:
+- **Apache Arrow**: Chosen for its robust in-memory data transfer and cross-language compatibility, essential for the heterogeneous operating environment of OptArrow.
+- **HiGHS Solver**: Adopted due to its free, open-source nature and popularity within the scientific and developer communities.
 
-### Design Exploration
-Throughout OptArrow's development, diverse design paths have been explored to achieve robustness. Multiple implementation routes were investigated, with iterative adjustments driving progressive enhancements.
+The choice of technologies aligns with the need for a streamlined architecture supporting OptArrow’s high-performance objectives.
 
-## Process Maturity and Governance
+## 6. Deployment & Constraints
 
-### Architectural Process Gaps
-Currently, OptArrow lacks formal architectural governance structures, representing a key area for maturation. Documenting architectural changes and establishing a structured governance process would greatly enhance transparency and scalability.
+Current deployments of OptArrow emphasize seamless operation across diverse programming environments, ensuring neither Python nor Julia versions create constraints for users. However, deployment is limited by the maturity of existing architecture, suggesting room for expansion in stable governance processes.
 
-### Requirements Documentation
-The maturation of requirements definition and traceability processes is paramount. Establishing formalized documentation and analysis procedures would effectively support decision-making consistency and project reliability.
+## 7. Known Architectural Gaps
 
-## Future Directions and Recommendations
+Several gaps exist that necessitate targeted improvements:
+- **Governance & Documentation**: There is an absence of formal architecture governance and structured documentation processes, affecting consistency and strategic development.
+- **Traceability**: The lack of formal system traceability undermines potential alignment between user feedback, decisions, and implemented changes.
+- **Alternative Protocols**: The current reliance on Apache Arrow was chosen based on intended architectural goals rather than empirical trials, suggesting a need for exploring alternative data-transfer protocols as OptArrow scales.
 
-### Enhanced Traceability
-We recommend the implementation of an advanced traceability process aligning stakeholder needs with decision-making and implementation documentation, drawing on industry-standard practices such as Architecture Decision Records (ADRs).
-
-### Stakeholder Feedback Review
-Establishing a formalized process for reviewing stakeholder feedback and deriving actionable insights will support better alignment with user expectations and long-term project objectives.
-
-## Summary of Evidence and Gaps
-
-### Evidence Insight
-The developer interview complements repository evidence, offering insights into the rationale underscoring technological choices and unveiling existing practices. This evidence illustrates how decisions were made and provides context for missing processes.
-
-### Confirmed Gaps
-Highlighted gaps include the absence of formal traceability, lack of alternative protocol trials, and nonexistent architectural governance frameworks. Recognition of these gaps serves as a foundation for addressing them in subsequent developments, aligning OptArrow with best practices in the field.
-
-By incorporating these insights, OptArrow's development will be guided by a comprehensive evidence-driven architecture, promoting a sustainable evolution towards meeting stakeholder needs efficiently and effectively.
+Future efforts are expected to address these gaps, involving the implementation of industry-standard architectural frameworks and decision documentation such as Architecture Decision Records (ADRs), aligning more closely with ISO 33061 standards.

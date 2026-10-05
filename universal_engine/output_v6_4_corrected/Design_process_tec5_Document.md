@@ -1,63 +1,100 @@
-# OptArrow Design Document
+# OptArrow Design Definition Documentation
 
-## Introduction
+## 1. Module & Class Structure
 
-The OptArrow optimization integration engine is designed to facilitate connections between optimization clients and solver backends using a high-performance, stable transport layer. The current runtime is centered around Python and Julia backends, with additional interaction capabilities available via a lightweight MATLAB client interface. The primary objective is to tackle optimization problems, particularly Linear Programming (LP) and Quadratic Programming (QP). The following documentation provides an in-depth view of how architectural components are implemented, focusing on mechanisms, interfaces, and the transformation of data representations within the system based on validated claims.
+OptArrow's architecture is based on a modular design that allows for extensibility and robust communication between components.
 
-## Stakeholder Engagement Mechanisms
+### Core Software Modules
 
-### Feedback Collection
+- **SolverManager Module**: Manages interactions with various solver backends, providing interfaces for both Python and Julia solvers.
+- **TransportLayer Module**: Facilitates the data communication across the system using Apache Arrow for efficient data transfer.
+- **ClientInterface Module**: Handles requests from external clients, such as MATLAB, ensuring compatibility and appropriate routing of optimization problems.
 
-OptArrow currently manages stakeholder input through GitHub Issues, serving as the central mechanism for contributions and problem reporting. This approach ensures streamlined communication with stakeholders, whose feedback can directly influence future iterations of the product. However, the absence of a formal requirements traceability system marks an area for future development. This advancement would enable connections from stakeholder feedback through to decisions and implementations, promoting comprehensive requirement management.
+### Solver Adapters
 
-## Architectural Decision Making and Evolution
+Each solver backend, whether Python, Julia, or third-party (e.g., HiGHS, open-source solver), is encapsulated within a dedicated adapter class. These classes interface directly with the `SolverManager`, converting optimization problems into formats suitable for the respective solvers.
 
-### Use of Apache Arrow for In-Memory Data Transfer
+### Class Dependencies
 
-OptArrow has strategically employed Apache Arrow for in-memory data transfer due to its capability to support high performance and cross-language compatibility. Specifically, data transitions within OptArrow involve transforming Python dictionaries into Arrow IPC (Inter-Process Communication) format. This intermediate format allows seamless handoff to the Julia environment, where the computations necessary for optimization tasks can be executed efficiently.
+- The `SolverManager` depends on specific classes within `Solver Adapters` to decouple solver-specific logic from core system functionalities.
+- The `ClientInterface` classes are dependent on the `TransportLayer` to ensure correct data encoding and retrieval.
 
-### HiGHS Solver Integration
+## 2. API Contracts & Data Schemas
 
-The HiGHS solver was selected as the backend due to its free and open-source nature, and its popularity among the scientific community for solving LP and QP problems. OptArrow integrates HiGHS directly, allowing for scalable computational capabilities. The solver receives input typically formatted through an Arrow IPC mechanism, ensuring that data is promptly and accurately processed for optimization calculations.
+OptArrow uses a set of well-defined API contracts to ensure consistent and reliable interaction between components.
 
-### Iterative Architecture Evolution
+### API Syntax
 
-The architectural design of OptArrow evolved iteratively rather than through a pre-defined roadmap. This iterative process enables flexibility, allowing the incorporation of insights from stakeholder feedback and technological assessments. OptArrow’s architecture is continuously refined, accommodating necessary modifications across development cycles.
+- APIs offer methods for submitting optimization problems, checking solver status, and retrieving results. 
+- Each API endpoint is standardized, facilitating requests in JSON format when communicating across different environments.
 
-### Historical Context Involving COBRA Toolbox
+### Data Schema Definitions
 
-Historically, the COBRA Toolbox provided a foundational architectural approach that influenced OptArrow's evolution. This reference highlights the adaptability and lessons learned from previous developments, serving as critical considerations in determining the current architectural components and configurations.
+- Input data, irrespective of origin, must conform to predefined schemas ensuring that only valid optimization problem specifications are processed.
+- The IPC format, facilitated by Apache Arrow, is employed consistently across APIs to maintain coherence and add secondary checks for data integrity.
 
-## Design Alternatives and Technology Evaluation
+## 3. Data Transformations & Protocol Structures
 
-### Absence of Alternative Protocol Trials
+### Arrow IPC Structure
 
-In selecting Apache Arrow for data transfer, no comprehensive trials involving alternative data-transfer protocols were conducted initially. The absence of this comparative analysis represents a potential future opportunity to validate Apache Arrow’s selection against other protocols, ensuring it meets optimal performance criteria under various operational scenarios.
+The choice of Apache Arrow as the primary data transportation protocol is justified by its efficient in-memory data management capabilities and its support for multiple language bindings.
 
-### Exploration of Multiple Implementation Routes
+- **Data Transformation Process**: 
+  - Input data, initially in Python dictionaries or Julia structures, is serialized into Arrow tables.
+  - Arrow's IPC format enables direct memory access, reducing latency and power consumed during transfers between different language environments.
 
-Throughout OptArrow's development, multiple implementation approaches were explored and are documented in the GitHub history. This iterative experimentation is a testament to the robustness and adaptability of the system, as developers evaluated different routes to address challenges and optimize functionalities.
+### Data Transformation Protocols
 
-## Process Governance and Maturity
+Protocols define rules for serializing, deserializing and transferring data specifically between OptArrow's core components and the Edge Problem Solver (EPS) environments.
 
-### Lack of Formal Architecture Governance
+## 4. Component Internals & Solver Adapters
 
-OptArrow currently operates without a formalized architecture governance framework. Establishing such a process would enhance the transparency and scalability of architectural changes. The implementation of documentation for architectural modifications and formal governance processes would represent significant strides toward maturity.
+### Component Architecture Exploration
 
-### Need for Maturing Requirements Documentation
+- **SolverManager Internals**: Centralizes decision-making logic regarding which backend solver to deploy based on problem fit criteria (e.g., complexity, type).
+- **TransportLayer Internals**: Employs Arrow for creating efficient pipelines between component interfaces, guaranteeing minimal data conversion overhead.
 
-There is a recognized need for maturing the requirements documentation process within OptArrow. Developing formal documentation and traceability procedures will provide a framework for consistent decision-making and reliable development activities, ultimately supporting robust project outcomes.
+### Solver API Interaction & HiGHS Integration
 
-## Recommendations for Future Development
+- **Solver Adapters** directly interact with backend solver APIs, treating them as black boxes.
+- HiGHS integration within OptArrow is facilitated via a custom adapter, simplifying access to its features through high-level API calls.
 
-### Enhanced Traceability Processes
+## 5. Error Handling & Edge Cases
 
-To improve requirements management, the implementation of an enhanced traceability process is recommended, aligning stakeholder needs with decision-making and implementation records. The use of industry-standard practices like Architecture Decision Records (ADRs) would significantly contribute to achieving this goal.
+### Error Trapping Methods
 
-### Formal Review Process for Stakeholder Feedback
+The system employs robust error-handling strategies including:
 
-A formal process for reviewing stakeholder feedback is essential for aligning the project with user expectations and ensuring long-term success. Developing such a process would facilitate actionable insights, allowing OptArrow to adapt effectively to the dynamic needs of its user base.
+- Structured exception handling around third-party library calls to catch errors specific to external APIs and solvers.
+- Logging mechanisms embedded within `TransportLayer` and `SolverManager` modules to ensure traceability of execution and performance anomalies.
 
-## Summary
+### Edge Case Adaptation
 
-This design document captures the current state of OptArrow's architecture and identifies areas for future improvement. By grounding development in validated claims and insights from historical evidence, OptArrow aims to continue its evolution as a robust optimization engine featuring enhanced scalability, process clarity, and stakeholder integration. Future efforts will prioritize formalizing governance structures, improving traceability processes, and exploring alternative technologies to align with industry standards in optimization software development.
+Adaptive algorithms within OptArrow manage resource allocation dynamically based on problem complexity and computational demands, offering reliable performance under edge conditions.
+
+## 6. Detailed Sequence of Operations
+
+### Request Processing Sequence
+
+1. **Problem Identification**: Determine the source environment.
+2. **Data Preparation**: Format into Arrow IPC for internal use.
+3. **Solver Routing**: Select and dispatch to appropriate solver backend.
+4. **Computation Cycle**: Solver executes and returns results.
+5. **Result Delivery**: Final results are sent back in the originating language format.
+
+### Data Routing Paths 
+
+- Managed through the `TransportLayer`, which orchestrates messaging between the client interfaces and solver adapters while maintaining state consistency across transactions.
+
+## 7. Implementation-Level Decisions
+
+### Decision-Making Backdrop
+
+- Choices such as Apache Arrow’s implementation stemmed from its capacity to support cross-language operations, notwithstanding a formal trial of alternative protocols.
+- The preference for HiGHS was informed by its open-source nature and broad applicability, which aligns with OptArrow's design philosophy.
+
+### Impact of Chosen Architectural Strategies
+
+- The integration of robust data transport and solver adaptability mechanisms directly contributes to OptArrow’s capability to function efficiently across the varied computational environments of its stakeholders. Expanding on architectural governance to include ADRs will enhance long-term maintainability.
+
+The design and components outlined herein ensure that OptArrow meets its primary objectives of efficient and cross-environmental optimization problem-solving, while continuously allowing for improvements in system architecture and functionality based on stakeholder feedback.
