@@ -320,7 +320,7 @@ class AgentCore:
             3. Interfaces & Data Flow (Cross-language communication)
             4. Runtime Interactions & Sequence
             5. Technology Decisions & Rationale
-            6. Deployment Topology & Constraints (Specify process/container boundaries, network/service boundaries, client-to-service topology, and ports/protocols)
+            6. Deployment Topology & Constraints (Acknowledge that this is a local, in-memory, inter-language architecture. Document process boundaries rather than network boundaries)
             7. Architecture Governance & Known Gaps"""
         elif "TEC.5" in process_id:
             schema = """TEC.5 Detailed Design Schema:
@@ -357,7 +357,7 @@ class AgentCore:
             3. Interfaces & Data Flow (Python/Julia interaction, Arrow transport)
             4. Runtime interactions & Sequence
             5. Technology decisions & Rationale (incorporate interview here)
-            6. Deployment Topology & Constraints (Detail process/container boundaries, network/service boundaries, client-to-service topology, and protocols)
+            6. Deployment Topology & Constraints (Detail process boundaries and acknowledge the local, in-memory nature of the system instead of inventing network topologies)
             7. Known architectural gaps (incorporate lack of governance here)"""
         else:
             phase_instruction = "CRITICAL PHASE INSTRUCTION: You are writing a Design Document. Describe exactly HOW the architectural components are implemented in the code."
