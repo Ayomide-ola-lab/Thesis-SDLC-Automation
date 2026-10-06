@@ -316,11 +316,11 @@ class AgentCore:
         elif "TEC.4" in process_id:
             schema = """TEC.4 Architecture Schema:
             1. System Architecture Context
-            2. Major Components & Responsibilities
+            2. Major Components & Responsibilities (Decompose deeply into specific engines, APIs, transport mechanisms, and solver interfaces. Do not use coarse groupings.)
             3. Interfaces & Data Flow (Cross-language communication)
             4. Runtime Interactions & Sequence
             5. Technology Decisions & Rationale
-            6. Deployment Boundaries & Constraints
+            6. Deployment Topology & Constraints (Specify process/container boundaries, network/service boundaries, client-to-service topology, and ports/protocols)
             7. Architecture Governance & Known Gaps"""
         elif "TEC.5" in process_id:
             schema = """TEC.5 Detailed Design Schema:
@@ -353,11 +353,11 @@ class AgentCore:
             Do NOT let interview rationale or process governance dominate this document. The majority of this document MUST be derived from the repository code and visual architecture diagram.
             You MUST follow this exact structural outline:
             1. System context
-            2. Components & Responsibilities
+            2. Components & Responsibilities (Decompose deeply: API gateways, specific Python/Julia engines, transport mechanisms, solver interfaces. Do not use coarse groupings)
             3. Interfaces & Data Flow (Python/Julia interaction, Arrow transport)
             4. Runtime interactions & Sequence
             5. Technology decisions & Rationale (incorporate interview here)
-            6. Deployment & Constraints
+            6. Deployment Topology & Constraints (Detail process/container boundaries, network/service boundaries, client-to-service topology, and protocols)
             7. Known architectural gaps (incorporate lack of governance here)"""
         else:
             phase_instruction = "CRITICAL PHASE INSTRUCTION: You are writing a Design Document. Describe exactly HOW the architectural components are implemented in the code."
