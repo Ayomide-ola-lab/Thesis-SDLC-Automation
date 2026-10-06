@@ -364,13 +364,20 @@ class AgentCore:
             phase_instruction = """CRITICAL PHASE INSTRUCTION: You are writing a Design Document. Describe exactly HOW the architectural components are implemented in the code.
             EPISTEMIC STRICTNESS: Every implementation detail MUST trace to the provided claims. DO NOT invent modules (e.g., 'SolverManager'), APIs (e.g., JSON endpoints), or algorithms. If a section of the plan lacks evidence in the claims, you MUST explicitly write "No repository evidence currently exists for [X]" instead of inventing it."""
 
-        prompt = f"""Write a deeply technical software specification.
+        prompt = f"""Write a deeply technical, highly extensive software specification.
         CRITICAL PERSONA: You are writing the OFFICIAL live documentation for the OptArrow website. 
         DO NOT write like an external auditor. DO NOT use phrases like 'The interview confirmed', 'The repository lacks', or 'Evidence suggests'. 
-        Instead, state current implementations authoritatively (e.g., 'OptArrow currently manages feedback via GitHub Issues') and frame any process gaps as forward-looking roadmap items with industry-standard recommendations (e.g., 'Future scaling is expected to implement formal Architecture Decision Records (ADRs)').
+        Instead, state current implementations authoritatively (e.g., 'OptArrow currently manages feedback via GitHub Issues') and frame any process gaps as forward-looking roadmap items with industry-standard recommendations.
         {phase_instruction}
+        
+        NARRATIVE DEPTH & LENGTH CONSTRAINT: 
+        This document MUST be extensively detailed. You must weave a rich, professional, and comprehensive narrative around the validated facts. 
+        Do NOT output terse bullet points. Elaborate deeply on the systems engineering context, design implications, and architectural pathways.
+        - For Requirements and Architecture, the output MUST be highly comprehensive (minimum ~1500-2000 words, equivalent to 4 pages).
+        - For Design, the output MUST be detailed (minimum ~1200-1500 words, equivalent to 3 pages).
+        
         CRITICAL: Explain mechanisms, interfaces, and how information changes representation as it moves through the system (e.g., Python Dict -> Arrow IPC -> Julia).
-        EPISTEMIC STRICTNESS: Constrain EVERY substantive statement strictly to the provided validated claims. Do not hallucinate capabilities under structural duress. If the document plan asks for a section that is unsupported by claims, state explicitly: "This component/feature is undocumented in the current implementation."
+        EPISTEMIC STRICTNESS: Constrain EVERY substantive statement strictly to the provided validated claims. Do not hallucinate capabilities under structural duress. If the document plan asks for a section that is unsupported by claims, state explicitly: "This component/feature is undocumented in the current implementation," but still provide narrative context on why this is the current state or the roadmap for it.
         Context: {auth_knowledge}
         Previous Documents Context: {prev_docs}
         Plan: {plan.model_dump_json()}
