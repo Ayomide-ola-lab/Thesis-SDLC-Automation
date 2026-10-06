@@ -310,8 +310,8 @@ class AgentCore:
             schema = """TEC.3 Requirements Schema:
             1. System Context & Overview
             2. Stakeholder Needs & Feedback Mechanisms
-            3. Functional Requirements (Strict Input/Behavior/Output definitions)
-            4. Non-Functional Requirements (Performance, Compatibility)
+            3. Functional Requirements (Strict Input/Behavior/Output definitions. MUST use IDs like FR-01, FR-02. MUST be bounded to LP/QP scope, not 'any problem')
+            4. Non-Functional Requirements (Performance, Compatibility. MUST use IDs like NFR-01. Performance targets MUST be measurable or state that benchmarks are to be established)
             5. Requirements Traceability & Governance"""
         elif "TEC.4" in process_id:
             schema = """TEC.4 Architecture Schema:
@@ -347,7 +347,7 @@ class AgentCore:
 
     def write_engineering_document(self, plan: DocumentPlan, claims: EngineeringSynthesis, auth_knowledge: str, prev_docs: str, process_id: str, client) -> str:
         if "TEC.3" in process_id:
-            phase_instruction = "CRITICAL PHASE INSTRUCTION: You are writing a Requirements Specification. Requirements describe INTENTIONS. Use forward-looking, prescriptive language (e.g., 'The system shall...', 'The architecture will...'). Do not describe the system as already built; describe what it is required to do."
+            phase_instruction = "CRITICAL PHASE INSTRUCTION: You are writing a Requirements Specification. Requirements describe INTENTIONS. Use forward-looking, prescriptive language (e.g., 'The system shall...', 'The architecture will...'). Ensure EVERY functional and non-functional requirement has a unique ID (e.g., FR-01, NFR-01). Scope MUST be explicitly bounded to LP/QP optimization problems (do not say 'any problem'). All performance requirements MUST be measurable or explicitly state that benchmarks are to be established."
         elif "TEC.4" in process_id:
             phase_instruction = """CRITICAL PHASE INSTRUCTION: You are writing a Structural Architecture Document. 
             Do NOT let interview rationale or process governance dominate this document. The majority of this document MUST be derived from the repository code and visual architecture diagram.
