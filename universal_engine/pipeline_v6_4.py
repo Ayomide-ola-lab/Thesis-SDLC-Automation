@@ -339,6 +339,7 @@ class AgentCore:
         {schema}
         
         Create semantic headings that map this schema to the validated engineering mechanisms in the claims.
+        EPISTEMIC STRICTNESS: You must ONLY plan sections that are supported by the provided Claims. If the schema asks for something (like APIs or Error Handling) but the Claims do NOT contain evidence for it, you must explicitly plan a section stating it is undocumented or unimplemented rather than inventing components.
         NO ISO LEAKAGE.
         Context: {auth_knowledge}
         Previous Documents Context: {prev_docs}
@@ -360,7 +361,8 @@ class AgentCore:
             6. Deployment Topology & Constraints (Detail process boundaries and acknowledge the local, in-memory nature of the system instead of inventing network topologies)
             7. Known architectural gaps (incorporate lack of governance here)"""
         else:
-            phase_instruction = "CRITICAL PHASE INSTRUCTION: You are writing a Design Document. Describe exactly HOW the architectural components are implemented in the code."
+            phase_instruction = """CRITICAL PHASE INSTRUCTION: You are writing a Design Document. Describe exactly HOW the architectural components are implemented in the code.
+            EPISTEMIC STRICTNESS: Every implementation detail MUST trace to the provided claims. DO NOT invent modules (e.g., 'SolverManager'), APIs (e.g., JSON endpoints), or algorithms. If a section of the plan lacks evidence in the claims, you MUST explicitly write "No repository evidence currently exists for [X]" instead of inventing it."""
 
         prompt = f"""Write a deeply technical software specification.
         CRITICAL PERSONA: You are writing the OFFICIAL live documentation for the OptArrow website. 
@@ -368,7 +370,7 @@ class AgentCore:
         Instead, state current implementations authoritatively (e.g., 'OptArrow currently manages feedback via GitHub Issues') and frame any process gaps as forward-looking roadmap items with industry-standard recommendations (e.g., 'Future scaling is expected to implement formal Architecture Decision Records (ADRs)').
         {phase_instruction}
         CRITICAL: Explain mechanisms, interfaces, and how information changes representation as it moves through the system (e.g., Python Dict -> Arrow IPC -> Julia).
-        Constrain EVERY substantive statement to the provided validated claims. Do not hallucinate capabilities.
+        EPISTEMIC STRICTNESS: Constrain EVERY substantive statement strictly to the provided validated claims. Do not hallucinate capabilities under structural duress. If the document plan asks for a section that is unsupported by claims, state explicitly: "This component/feature is undocumented in the current implementation."
         Context: {auth_knowledge}
         Previous Documents Context: {prev_docs}
         Plan: {plan.model_dump_json()}
