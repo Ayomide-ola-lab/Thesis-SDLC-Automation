@@ -1,44 +1,73 @@
-# OptArrow Requirements Specification
+# System/Software Requirements Definition Process for OptArrow
 
-## System Context & Overview
+## 1. System Context & Overview
 
-The OptArrow optimization integration engine serves as a bridge connecting various optimization clients to solver backends, utilizing a stable and high-performance transport layer. The system's architecture capitalizes on both Python and Julia backends and provides interfacing capabilities with environments such as MATLAB through a lightweight client interface. The core system logic is designed to handle and solve optimization problems, specifically linear programming (LP) and quadratic programming (QP), by routing inputs from different environments through the appropriate computational pathways and returning results in the caller's originating programming language. The architecture will leverage Apache Arrow for in-memory data transfer due to its demonstrated cross-language compatibility, an essential factor given the diverse programming environments integrated with OptArrow.
+### 1.1 Overview of OptArrow's Architecture
 
-## Stakeholder Needs & Feedback Mechanisms
+OptArrow serves as an optimization integration engine meticulously designed to facilitate communication between optimization clients and solver backends, emphasizing the need for high-performance and stable transport layers. The architecture primarily supports Linear Programming (LP) and Quadratic Programming (QP) optimization problems, restricting its operational scope to these mathematical realms.
 
-User feedback plays a crucial role in refining OptArrow's capabilities to better meet the evolving needs of its stakeholders, including Software Engineers, Researchers, Data Scientists, and Optimization Specialists. The system shall continue to utilize GitHub Issues as the primary mechanism for collecting stakeholder feedback. This approach streamlines communication and allows for easy tracking of user suggestions, issues, and enhancements. However, future system iterations are expected to incorporate more formalized stakeholder feedback review processes and requirement traceability mechanisms, ensuring thorough alignment between user needs and system developments.
+The OptArrow architecture thrives on the in-memory data transfer capabilities provided by Apache Arrow, promoting seamless cross-language compatibility which is a crucial requirement given the diverse environments from which OptArrow can be invoked, including Python, Julia, and MATLAB. The use of Apache Arrow enables smooth and efficient data interchange between languages, thereby reducing overheads, ensuring that optimization tasks are performed efficiently across different computational platforms.
 
-## Functional Requirements
+### 1.2 Core System Logic and Functionality
 
-### Input Specifications
-- The system shall accommodate any mathematical problem that requires optimization, capturing the input problem definitions efficiently.
-- The input format must be compatible with both Python and Julia environments, ensuring seamless data ingestion regardless of the client's development platform.
+At its core, OptArrow receives optimization problems primarily coded in Python or Julia. The architecture is structured to discern the language of origin and accordingly route the problem through the appropriate computational pathway. Such precise routing pathways are essential to ensure that the solver backend employed is inline with the problem's origin. Upon completion of the optimization task, the solver outputs the results in the language originally used by the coder, facilitating smooth integration and reducing the need for any additional data handling by the user.
 
-### Behavioral Pathways
-- Upon receiving an optimization problem, the system will identify the source environment (e.g., Python or Julia) and route the problem through the most suitable solver backend.
-- OptArrow shall employ Apache Arrow for efficient, in-memory interlanguage communication, ensuring that data integrity and speed are maintained across transitions.
+This routing mechanism involves a transformation of data representation from Python dictionaries to Arrow IPC (Inter-Process Communication) format followed by potential conversion to Julia structures, highlighting the efficiency and extensibility of the system architecture.
 
-### Output Specifications
-- OptArrow will ensure that the calculated optimization results are delivered back to the client in the same programming language as the input, preserving coding integrity and facilitating ease of integration into existing workflows.
+## 2. Stakeholder Needs & Feedback Mechanisms
 
-## Non-Functional Requirements
+### 2.1 Stakeholder Identification
 
-### Performance Metrics
-- The system shall prioritize high-speed data transfers and computation efficiency, leveraging Apache Arrow's in-memory capabilities to minimize latency in cross-language operations.
-- Future iterations shall aim to rigorously benchmark the system's performance, targeting industry-leading optimization problem-solving times.
+OptArrow prioritizes a wide array of stakeholders including Software Engineers, Researchers, Data Scientists, and Optimization Specialists. These stakeholders are instrumental in augmenting the functionality of OptArrow as they bring forth diverse requirements and use cases that steer the ongoing evolution of the platform.
 
-### Compatibility Across Environments
-- Broad compatibility shall be maintained across the primary environments (Python, Julia, and MATLAB). This includes ensuring that updates in programming languages' APIs do not break the existing OptArrow integration.
+### 2.2 Feedback Collection Mechanisms
 
-## Requirements Traceability & Governance
+The process of collecting feedback from stakeholders is currently managed via the GitHub Issues mechanism. This channel allows stakeholders to submit their feedback, which is invaluable for capturing real-time user experiences and requirements. However, the integration of this feedback into the formal requirements and design processes currently lacks an established traceability framework. While feedback is diligently recorded, the absence of a structured path linking stakeholder feedback directly to implemented decisions is a noted gap, denoting a forward-looking area for improvement.
 
-### Formal Traceability Mechanisms
-- OptArrow shall establish a clear framework for mapping stakeholder feedback directly to system requirements and subsequent implementations. This will involve developing dedicated tools and processes for tracing requirements from inception through to deployment.
+## 3. Functional Requirements
 
-### Governance and Compliance
-- Currently, the decision-making process is largely guided by direction from the principal investigator. However, future system enhancements will pursue more structured, documented decision-making processes, possibly expanding into formal Architectural Decision Records (ADRs) for enhanced transparency and accountability.
+### 3.1 Functional Requirement Specifications
 
-### Process Maturity and Gaps
-- The current informal architectural evolution necessitates future work on establishing a documented architecture roadmap to guide development. Additional efforts will be made to fill process gaps in architectural governance and decision rationalization, ensuring OptArrow evolves into a mature project with well-defined engineering and governance practices.
+OptArrow's core functional requirements are centered on its ability to accurately solve LP and QP optimization problems using trusted solver backends. The following encapsulates the system's key functional requirements:
 
-These requirements are intended to guide the development and future enhancements of OptArrow, ensuring that the system remains resilient, adaptable, and efficient in meeting the complex needs of optimization problem-solving across multiple programming environments.
+- **FR-01:** The system shall accept LP and QP optimization problems as input.
+- **FR-02:** The system shall interpret the language of origin (Python or Julia) and appropriately route the optimization problem to the corresponding solver backend.
+- **FR-03:** The system shall utilize Apache Arrow to facilitate cross-language data exchange between Python and Julia environments efficiently.
+- **FR-04:** The system shall output the optimization results in the same language as the input problem, preserving the original data structures wherever feasible.
+
+### 3.2 Unique Identifiers for Each Requirement
+
+Each functional requirement is uniquely identified to delineate its specific role within the broader system design. The identifiers FR-01 to FR-04 serve as a reference for mapping individual capabilities back to the documented architectural objectives.
+
+## 4. Non-Functional Requirements
+
+### 4.1 Performance Indicators
+
+OptArrow's performance is defined by its ability to process optimization problems with minimal latency, maintaining both accuracy and computational efficiency. Measurable performance targets, however, are yet to be firmly established within the current documentation.
+
+- **NFR-01:** The data transfer throughput via Apache Arrow shall support high-performance, low-latency communication between Python and Julia processes.
+- **NFR-02:** The optimization solver shall operate within acceptable performance benchmarks to be established upon further development.
+
+### 4.2 Compatibility Requirements
+
+Given its function as a cross-language engine, OptArrow’s compatibility requirements are integral to its operation. The adoption of Apache Arrow significantly contributes to achieving the desired levels of cross-language compatibility, ensuring OptArrow can seamlessly function within diverse development environments and infrastructures.
+
+- **NFR-03:** The system shall maintain compatibility across Python, Julia, and MATLAB environments, allowing for straightforward invocation from each environment without necessitating amendment to the core system logic.
+
+Each non-functional requirement, identified by unique identifiers (NFR-01 to NFR-03), serves to reinforce the system's operational integrity and adaptability within the specified operational contexts.
+
+## 5. Requirements Traceability & Governance
+
+### 5.1 Traceability Mechanisms
+
+Despite the evident use of GitHub Issues for stakeholder feedback collection, there exists a confirmed gap in the formal traceability between the feedback collected and the requirements that subsequently guide system development. Future system enhancements must integrate a robust governance model designed to link each feedback/comment directly to implemented features/decisions.
+
+The lack of this traceability presents an area ripe for development and improvement. Contemporary best practices recommend adopting comprehensive traceability matrices or utilizing automated tools to bridge this distance effectively.
+
+### 5.2 Governance Models for Requirements Changes
+
+Currently, a formal governance framework for effecting changes to OptArrow's architectural or functional requirements is yet to be documented. The absence of such governance formalities further underpins the criticality of developing structured, comprehensive governance protocols. Emphasis on the establishment of a documented change management process should be prioritized, encapsulating decision-making frameworks, accountability structures, and regular review cycles to ensure systematic evolution and maturation of system capabilities.
+
+---
+
+In summary, the OptArrow system specification document provides a robust outline of its existing functional and non-functional requirements, considering all verified gaps and areas for future innovation. Attention is focused on refining these processes further, guided by validated claims and industry-best practices to bolster OptArrow towards achieving greater optimization efficacy and stakeholder satisfaction.
